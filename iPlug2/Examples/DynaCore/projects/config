@@ -1,0 +1,10 @@
+{
+  "bitmaps": {
+    "BG_MAIN": {
+      "path": "img/Main_Background.png",
+      "w": 1000,
+      "h": 600,
+      "n": 1
+    }
+  }
+}

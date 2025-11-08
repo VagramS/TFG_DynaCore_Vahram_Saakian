@@ -1,0 +1,34 @@
+dependencies: \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugOBJCPrefix.pch \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/APP/IPlugAPP.cpp \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/APP/IPlugAPP.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPlatform.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugAPIBase.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/ptrlist.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/heapbuf.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdltypes.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/mutex.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlatomic.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPluginBase.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugDelegate_select.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsEditorDelegate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugEditorDelegate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugParameter.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlstring.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugUtilities.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugConstants.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugMidi.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugLogger.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugStructs.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugQueue.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugTimer.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugProcessor.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/Extras/NChanDelay.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/APP/IPlugAPP_host.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugDrumSynth/config.h \
+  ../../../IPlug/IPlugSWELL.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/swell/swell.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/swell/swell-types.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/swell/swell-functions.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/Dependencies/IPlug/RTAudio/RtAudio.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/Dependencies/IPlug/RTMidi/RtMidi.h

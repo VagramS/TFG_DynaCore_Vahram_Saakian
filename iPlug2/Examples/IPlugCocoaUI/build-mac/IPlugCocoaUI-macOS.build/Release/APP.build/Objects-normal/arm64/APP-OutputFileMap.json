@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/APP-primary.dia",
+    "emit-module-dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/APP-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/APP-primary-emit-module.dia",
+    "pch" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/APP-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/APP-primary.swiftdeps"
+  },
+  "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/UI/IPlugCocoaUIViewController.swift" : {
+    "const-values" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.swiftconstvalues",
+    "dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.d",
+    "diagnostics" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.dia",
+    "index-unit-output-path" : "/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.o",
+    "llvm-bc" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.bc",
+    "object" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.o",
+    "swift-dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController.swiftdeps",
+    "swiftmodule" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/IPlugCocoaUIViewController~partial.swiftmodule"
+  },
+  "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/UI/TypeAliases.swift" : {
+    "const-values" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.swiftconstvalues",
+    "dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.d",
+    "diagnostics" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.dia",
+    "index-unit-output-path" : "/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.o",
+    "llvm-bc" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.bc",
+    "object" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.o",
+    "swift-dependencies" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases.swiftdeps",
+    "swiftmodule" : "/Users/vahram/Desktop/Iplug2/iPlug2/Examples/IPlugCocoaUI/build-mac/IPlugCocoaUI-macOS.build/Release/APP.build/Objects-normal/arm64/TypeAliases~partial.swiftmodule"
+  }
+}
