@@ -57,23 +57,44 @@
 #define APP_SIGNAL_VECTOR_SIZE 64
 
 #define ROBOTO_FN "Roboto-Regular.ttf"
+#define INTER_FN  "Inter-Medium.otf"
 
-// DynaCore visuals
+
+// DYNACORE VISUALS
 
 #define MAIN_BACKGROUND_FN "main_background.png"
 
-#define COMP_OFF_FN "compress_off_btn.png"
-#define COMP_ON_FN "compress_on_btn.png"
+// COMPRESSOR
+#define COMP_OFF_FN "compress_off.png"
+#define COMP_ON_FN "compress_on.png"
 
+// PRESETS
 #define SELECT_PRESET_FN "select_preset.png"
 #define PRESETS_PAGE_FN "presets_page.png"
+#define REVERT_TO_DEFAULT_FN "revert_to_default.png"
 
+#define PRESET_GROUP_VOCALS_SELECT_FN "preset_group_vocals_select.png"
+#define PRESET_GROUP_PADS_SELECT_FN "preset_group_pads_select.png"
+#define PRESET_GROUP_DRUMS_SELECT_FN "preset_group_drums_select.png"
+#define PRESET_GROUP_EXP_SELECT_FN "preset_group_exp_select.png"
+
+#define PRESET_GROUP_SELECT_ARROW_FN "preset_group_select_arrow.png"
+
+#define PRESET_VOCALS_LABLE_FN "preset_vocals_label.png"
+#define PRESET_PADS_LABLE_FN "preset_pads_label.png"
+#define PRESET_DRUMS_LABLE_FN "preset_drums_label.png"
+#define PRESET_EXP_LABLE_FN "preset_exp_label.png"
+
+// BYPASS
 #define BYPASS_OFF_FN "bypass_off.png"
 #define BYPASS_ON_FN "bypass_on.png"
 
-#define MODULE_OFF_FN "module_off_btn.png"
-#define MODULE_ON_FN "module_on_btn.png"
+// MODULES
+#define MODULE_OFF_FN "module_off.png"
+#define MODULE_ON_FN "module_on.png"
 
+// KNOBS
 #define BIG_KNOB_FN "big_knob.png"
 #define MID_KNOB_FN "mid_knob.png"
 #define SMALL_KNOB_FN "small_knob.png"
+
