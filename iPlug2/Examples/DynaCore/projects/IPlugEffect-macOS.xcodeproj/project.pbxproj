@@ -261,6 +261,12 @@
 		99BA09262EC0F75F00842C3F /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09252EC0F75F00842C3F /* Inter-Medium.otf */; };
 		99BA09272EC0F75F00842C3F /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09252EC0F75F00842C3F /* Inter-Medium.otf */; };
 		99BA09282EC0F75F00842C3F /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09252EC0F75F00842C3F /* Inter-Medium.otf */; };
+		99BA09432EC6292400842C3F /* preset_divider@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09422EC6292400842C3F /* preset_divider@2x.png */; };
+		99BA09442EC6292400842C3F /* preset_divider.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09412EC6292400842C3F /* preset_divider.png */; };
+		99BA09452EC6292500842C3F /* preset_divider@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09422EC6292400842C3F /* preset_divider@2x.png */; };
+		99BA09462EC6292500842C3F /* preset_divider.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09412EC6292400842C3F /* preset_divider.png */; };
+		99BA09472EC6292500842C3F /* preset_divider@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09422EC6292400842C3F /* preset_divider@2x.png */; };
+		99BA09482EC6292500842C3F /* preset_divider.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA09412EC6292400842C3F /* preset_divider.png */; };
 		B885CBC52304AE7300D73128 /* IPlugProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F8F61A8202807B9003F2573 /* IPlugProcessor.cpp */; };
 		B8E22A0C220268C4007CBF4C /* IPlugVST3_ProcessorBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B8E22A0A220268C4007CBF4C /* IPlugVST3_ProcessorBase.cpp */; };
 /* End PBXBuildFile section */
@@ -691,6 +697,8 @@
 		99BA09082EC0D5AB00842C3F /* preset_vocals_label.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = preset_vocals_label.png; sourceTree = "<group>"; };
 		99BA09092EC0D5AB00842C3F /* preset_vocals_label@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "preset_vocals_label@2x.png"; sourceTree = "<group>"; };
 		99BA09252EC0F75F00842C3F /* Inter-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.otf"; sourceTree = "<group>"; };
+		99BA09412EC6292400842C3F /* preset_divider.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = preset_divider.png; sourceTree = "<group>"; };
+		99BA09422EC6292400842C3F /* preset_divider@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "preset_divider@2x.png"; sourceTree = "<group>"; };
 		B8214CDB274AEF3500DFBE63 /* plugin.hh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin.hh; sourceTree = "<group>"; };
 		B8214CDC274AEF3500DFBE63 /* param-queue.hh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "param-queue.hh"; sourceTree = "<group>"; };
 		B8214CDD274AEF3500DFBE63 /* reducing-param-queue.hh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "reducing-param-queue.hh"; sourceTree = "<group>"; };
@@ -1548,6 +1556,8 @@
 		99268CF42EBE4004008983DB /* img */ = {
 			isa = PBXGroup;
 			children = (
+				99BA09412EC6292400842C3F /* preset_divider.png */,
+				99BA09422EC6292400842C3F /* preset_divider@2x.png */,
 				99BA09022EC0D5AB00842C3F /* preset_drums_label.png */,
 				99BA09032EC0D5AB00842C3F /* preset_drums_label@2x.png */,
 				99BA09042EC0D5AB00842C3F /* preset_exp_label.png */,
@@ -1864,6 +1874,8 @@
 				99BA09112EC0D5AB00842C3F /* preset_vocals_label@2x.png in Resources */,
 				99268D182EBE5C44008983DB /* select_preset@2x.png in Resources */,
 				99268D192EBE5C44008983DB /* select_preset.png in Resources */,
+				99BA09472EC6292500842C3F /* preset_divider@2x.png in Resources */,
+				99BA09482EC6292500842C3F /* preset_divider.png in Resources */,
 				99268D202EBE60BA008983DB /* bypass_off.png in Resources */,
 				99268D212EBE60BA008983DB /* bypass_off@2x.png in Resources */,
 				99268CFD2EBE4B53008983DB /* Main_Background@2x.png in Resources */,
@@ -1916,6 +1928,8 @@
 				99BA09192EC0D5AB00842C3F /* preset_vocals_label@2x.png in Resources */,
 				99268D1C2EBE5C44008983DB /* select_preset@2x.png in Resources */,
 				99268D1D2EBE5C44008983DB /* select_preset.png in Resources */,
+				99BA09432EC6292400842C3F /* preset_divider@2x.png in Resources */,
+				99BA09442EC6292400842C3F /* preset_divider.png in Resources */,
 				99268D242EBE60BB008983DB /* bypass_off.png in Resources */,
 				99268D252EBE60BB008983DB /* bypass_off@2x.png in Resources */,
 				99268CFC2EBE4B53008983DB /* Main_Background@2x.png in Resources */,
@@ -1972,6 +1986,8 @@
 				99BA08DD2EC0C20F00842C3F /* preset_group_select_arrow@2x.png in Resources */,
 				99268D5B2EBEAE50008983DB /* mid_knob@2x.png in Resources */,
 				99BA08BE2EC01FA000842C3F /* compress_off.png in Resources */,
+				99BA09452EC6292500842C3F /* preset_divider@2x.png in Resources */,
+				99BA09462EC6292500842C3F /* preset_divider.png in Resources */,
 				99BA08BF2EC01FA000842C3F /* compress_off@2x.png in Resources */,
 				99268D512EBE80BA008983DB /* big_knob@2x.png in Resources */,
 				4F1B4AE42014D33600BC64D4 /* IPlugEffect-macOS-MainMenu.xib in Resources */,

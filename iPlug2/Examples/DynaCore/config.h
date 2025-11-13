@@ -1,4 +1,4 @@
-#define PLUG_NAME "IPlugEffect"
+#define PLUG_NAME "DynaCore"
 #define PLUG_MFR "AcmeInc"
 #define PLUG_VERSION_HEX 0x00010000
 #define PLUG_VERSION_STR "1.0.0"
@@ -71,6 +71,7 @@
 // PRESETS
 #define SELECT_PRESET_FN "select_preset.png"
 #define PRESETS_PAGE_FN "presets_page.png"
+
 #define REVERT_TO_DEFAULT_FN "revert_to_default.png"
 
 #define PRESET_GROUP_VOCALS_SELECT_FN "preset_group_vocals_select.png"
@@ -79,6 +80,8 @@
 #define PRESET_GROUP_EXP_SELECT_FN "preset_group_exp_select.png"
 
 #define PRESET_GROUP_SELECT_ARROW_FN "preset_group_select_arrow.png"
+
+#define PRESET_divider_FN "preset_divider.png"
 
 #define PRESET_VOCALS_LABLE_FN "preset_vocals_label.png"
 #define PRESET_PADS_LABLE_FN "preset_pads_label.png"

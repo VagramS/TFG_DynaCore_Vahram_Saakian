@@ -6,13 +6,13 @@
 	<array>
 		<dict>
 			<key>description</key>
-			<string>IPlugEffect</string>
+			<string>DynaCore</string>
 			<key>factoryFunction</key>
 			<string>IPlugEffect_Factory</string>
 			<key>manufacturer</key>
 			<string>Acme</string>
 			<key>name</key>
-			<string>AcmeInc: IPlugEffect</string>
+			<string>AcmeInc: DynaCore</string>
 			<key>sandboxSafe</key>
 			<true/>
 			<key>subtype</key>
