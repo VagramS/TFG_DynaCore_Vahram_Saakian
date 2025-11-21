@@ -56,8 +56,8 @@
 #define APP_COPY_AUV3 0
 #define APP_SIGNAL_VECTOR_SIZE 64
 
-#define ROBOTO_FN "Roboto-Regular.ttf"
-#define INTER_FN  "Inter-Medium.otf"
+//#define ROBOTO_FN "Roboto-Regular.ttf"
+#define INTER_SEMI_BOLD_FN "Inter-Semi-Bold.ttf"
 
 
 // DYNACORE VISUALS
@@ -79,14 +79,19 @@
 #define PRESET_GROUP_DRUMS_SELECT_FN "preset_group_drums_select.png"
 #define PRESET_GROUP_EXP_SELECT_FN "preset_group_exp_select.png"
 
-#define PRESET_GROUP_SELECT_ARROW_FN "preset_group_select_arrow.png"
-
-#define PRESET_divider_FN "preset_divider.png"
-
 #define PRESET_VOCALS_LABLE_FN "preset_vocals_label.png"
 #define PRESET_PADS_LABLE_FN "preset_pads_label.png"
 #define PRESET_DRUMS_LABLE_FN "preset_drums_label.png"
 #define PRESET_EXP_LABLE_FN "preset_exp_label.png"
+
+#define PRESET_GROUP_SELECT_ARROW_FN "preset_group_select_arrow.png"
+
+#define PRESET_DIVIDER_FN "preset_divider.png"
+
+#define PRESET_FROM_GROUP_SELECT_FIRST_FN "preset_from_group_select_first.png"
+#define PRESET_FROM_GROUP_SELECT_REST_FN "preset_from_group_select_rest.png"
+
+#define PRESET_POINTER_FN "preset_pointer.png"
 
 // BYPASS
 #define BYPASS_OFF_FN "bypass_off.png"
