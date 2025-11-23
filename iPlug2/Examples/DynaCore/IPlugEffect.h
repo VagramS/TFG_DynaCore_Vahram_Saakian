@@ -4,32 +4,32 @@
 
 const int kNumPresets = 1;
 
-// Parameter indices (match UI and DSP)
+// Parameter indices (shared by UI and DSP)
 enum EParams
 {
   kGain = 0,
-  
-  // --- Tremolo ---
+
+  // Tremolo
   kTremBypass,
   kTremRate,
   kTremDepth,
-  
-  // --- Pan Motion ---
+
+  // Pan motion
   kPanBypass,
   kPanRate,
   kPanDepth,
-  
-  // --- Pitch Drift ---
+
+  // Pitch drift
   kPitchBypass,
   kPitchRate,
   kPitchDepth,
-  
-  // --- Phaser ---
+
+  // Phaser
   kPhaserBypass,
   kPhaserRate,
   kPhaserDepth,
 
-  // --- COMP ---
+  // Compressor
   kCompMix,
   kCompThreshold,
   kCompRatio,
@@ -38,11 +38,11 @@ enum EParams
   kCompRelease,
   kCompBypass,
 
-  // --- MASTER / OUTPUT ---
+  // Master / output
   kMasterIntensity,
   kOutputLevel,
   kBypass,
-  
+
   kNumParams
 };
 
@@ -58,20 +58,20 @@ public:
 #if IPLUG_DSP
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
-  
-  // Reset parameters from UI (used by presets page "Revert to default")
+
+  // Reset parameters from the presets UI ("Revert to default")
   void ApplyDefaultPresetFromUI();
 
-  // Last measured output level in dB for UI meter
+  // Last measured output level in dB for the UI meter
   double GetOutputLevelDB() const { return mOutputLevelDB; }
 
 private:
-  // Output level for numeric meter
-  double mOutputLevelDB = 0.0; // starts as 0.0 dB for UI
+  // Output level for the numeric meter
+  double mOutputLevelDB = 0.0;
 
-  // Internal phase for optional test tone generator
-  double mTestPhase = 0.0;     // phase accumulator for test tone
+  // Phase accumulator for optional internal test tone
+  double mTestPhase = 0.0;
 
-  // Enable/disable internal test tone instead of processing input
-  bool mUseTestTone = false;   // when true, plugin outputs a test tone
+  // When true, plugin outputs a test tone instead of input
+  bool mUseTestTone = false;
 };

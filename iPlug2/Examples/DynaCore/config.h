@@ -56,19 +56,21 @@
 #define APP_COPY_AUV3 0
 #define APP_SIGNAL_VECTOR_SIZE 64
 
-//#define ROBOTO_FN "Roboto-Regular.ttf"
+// === FONTS ===
 #define INTER_SEMI_BOLD_FN "Inter-Semi-Bold.ttf"
+#define INTER_REGULAR_FN "Inter-Regular.ttf"
+#define INTER_MEDIUM_FN "Inter-Medium.ttf"
 
 
-// DYNACORE VISUALS
+// === DYNACORE VISUALS ===
 
 #define MAIN_BACKGROUND_FN "main_background.png"
 
-// COMPRESSOR
+// === COMPRESSOR ===
 #define COMP_OFF_FN "compress_off.png"
 #define COMP_ON_FN "compress_on.png"
 
-// PRESETS
+// === PRESETS ===
 #define SELECT_PRESET_FN "select_preset.png"
 #define PRESETS_PAGE_FN "presets_page.png"
 
@@ -93,16 +95,15 @@
 
 #define PRESET_POINTER_FN "preset_pointer.png"
 
-// BYPASS
+// === BYPASS ===
 #define BYPASS_OFF_FN "bypass_off.png"
 #define BYPASS_ON_FN "bypass_on.png"
 
-// MODULES
+// === MODULES ===
 #define MODULE_OFF_FN "module_off.png"
 #define MODULE_ON_FN "module_on.png"
 
-// KNOBS
+// === KNOBS ===
 #define BIG_KNOB_FN "big_knob.png"
 #define MID_KNOB_FN "mid_knob.png"
 #define SMALL_KNOB_FN "small_knob.png"
-

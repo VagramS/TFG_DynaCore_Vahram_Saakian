@@ -4,6 +4,7 @@
 #include <cstdio> // snprintf
 #include <cmath>
 #include <string>
+#include "wdlstring.h"
 
 // ---------- helper for hover overlay ----------
 namespace
@@ -94,6 +95,7 @@ static int          gSelectedPresetGlobal = -1;
 
 // Human-readable name of selected preset (for any future use / debug)
 static std::string  gSelectedPresetName   = kPresetName_None;
+
 
 // ---------- Reset main parameters to defaults (triggered from UI) ----------
 void IPlugEffect::ApplyDefaultPresetFromUI()
@@ -470,7 +472,6 @@ private:
   void ApplyPresetPlaceholder(EPresetGroup /*g*/, int /*idx*/)
   {
     // Stub for future preset application.
-    // Intentionally empty to avoid side effects until real DSP is wired.
   }
 
   void UpdateHover(float x, float y)
@@ -799,7 +800,7 @@ private:
   float   mCornerRadius = 0.f;
 };
 
-// ========== Knob with optional hover overlay and HAND cursor ==========
+// ========== Knob with optional hover overlay, HAND cursor ==========
 class HoverKnobRotaterControl : public IBKnobRotaterControl
 {
 public:
@@ -817,47 +818,56 @@ public:
 
   void Draw(IGraphics& g) override
   {
-    IBKnobRotaterControl::Draw(g);
-    if (mDrawOverlay && (GetMouseIsOver() || mDragging))
+    // Upper arc of rotation
+    constexpr double kStart = 0.0;
+    constexpr double kEnd   = 270.0;
+    const double angle = kStart + GetValue() * (kEnd - kStart);
+
+    g.DrawRotatedBitmap(mBitmap, mRECT.MW(), mRECT.MH(), angle, &mBlend);
+
+    // Overlay on hover
+    if (mDrawOverlay && GetMouseIsOver())
       DrawHoverOverlay(g, mRECT, mHoverColor, mCornerRadius);
   }
 
-  void OnMouseOver(float x, float y, const IMouseMod& mod) override
+  void OnMouseOver(float x, float y, const IMouseMod& m) override
   {
-    IBKnobRotaterControl::OnMouseOver(x, y, mod);
-    if (auto* ui = GetUI()) ui->SetMouseCursor(ECursor::HAND);
+    IBKnobRotaterControl::OnMouseOver(x, y, m);
+    if (auto* ui = GetUI())
+      ui->SetMouseCursor(ECursor::HAND);
     SetDirty(false);
   }
 
   void OnMouseOut() override
   {
     IBKnobRotaterControl::OnMouseOut();
-    if (auto* ui = GetUI()) ui->SetMouseCursor(ECursor::ARROW);
+    if (auto* ui = GetUI())
+      ui->SetMouseCursor(ECursor::ARROW);
     SetDirty(false);
   }
 
   void OnMouseDown(float x, float y, const IMouseMod& mod) override
   {
-    mDragging = true;
     IBKnobRotaterControl::OnMouseDown(x, y, mod);
-    if (auto* ui = GetUI()) ui->SetMouseCursor(ECursor::HAND);
+    if (auto* ui = GetUI())
+      ui->SetMouseCursor(ECursor::HAND);
     SetDirty(false);
   }
 
   void OnMouseUp(float x, float y, const IMouseMod& mod) override
   {
-    mDragging = false;
     IBKnobRotaterControl::OnMouseUp(x, y, mod);
-    if (auto* ui = GetUI()) ui->SetMouseCursor(ECursor::ARROW);
+    if (auto* ui = GetUI())
+      ui->SetMouseCursor(ECursor::ARROW);
     SetDirty(false);
   }
 
 private:
   IColor mHoverColor;
   float  mCornerRadius = 0.f;
-  bool   mDragging = false;
-  bool   mDrawOverlay = true;
+  bool   mDrawOverlay  = true;
 };
+
 
 // =================== Output level text ===================
 class OutputLevelTextControl : public IControl
@@ -903,6 +913,87 @@ private:
   IPlugEffect* mPlugin = nullptr;
 };
 
+// =================== Value text under BIG knobs ===================
+class BigKnobValueTextControl : public IControl
+{
+public:
+  BigKnobValueTextControl(const IRECT& bounds, int paramIdx)
+  : IControl(bounds)
+  , mParamIdx(paramIdx)
+  {
+    // Display-only control (no mouse interaction)
+    mIgnoreMouse = true;
+  }
+
+  void Draw(IGraphics& g) override
+  {
+    auto* dlg = GetDelegate();
+    if (!dlg || mParamIdx < 0 || mParamIdx >= dlg->NParams())
+      return;
+
+    IParam* p = dlg->GetParam(mParamIdx);
+    if (!p)
+      return;
+
+    // Normalized 0..1 value converted to 0..100%
+    const double percent = p->GetNormalized() * 100.0;
+
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%.0f%%", percent); // integer percent with "%"
+
+    // Inter-Regular, 17 pt, centered under the knob
+    IColor color(255, 53, 66, 80);
+    IText text(17.f, color, "Inter-Regular",
+               EAlign::Center, EVAlign::Middle);
+
+    g.DrawText(text, buf, mRECT);
+    SetDirty(false);
+  }
+
+private:
+  // Parameter index to read from the delegate
+  int mParamIdx = -1;
+};
+
+// =================== Value text under MID knobs ===================
+class MidKnobValueTextControl : public IControl
+{
+public:
+  MidKnobValueTextControl(const IRECT& bounds, int paramIdx)
+  : IControl(bounds)
+  , mParamIdx(paramIdx)
+  {
+    mIgnoreMouse = true;
+  }
+
+  void Draw(IGraphics& g) override
+  {
+    auto* dlg = GetDelegate();
+    if (!dlg || mParamIdx < 0 || mParamIdx >= dlg->NParams())
+      return;
+
+    IParam* p = dlg->GetParam(mParamIdx);
+    if (!p)
+      return;
+
+    const double percent = p->GetNormalized() * 100.0;
+
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%.0f%%", percent);
+
+    IColor color(255, 171, 171, 171); // #ABABAB
+    IText text(12.f, color, "Inter-Medium",
+               EAlign::Center, EVAlign::Middle);
+
+    g.DrawText(text, buf, mRECT);
+    SetDirty(false);
+  }
+
+private:
+  int mParamIdx;
+};
+
+
 // =================== Preset title text (X:45, Y:77) ===================
 class PresetNameTextControl : public IControl
 {
@@ -918,9 +1009,9 @@ public:
     const bool hasPreset = (gSelectedPresetGlobal >= 0);
     const char* text = hasPreset ? gSelectedPresetName.c_str() : "SELECT PRESET";
 
-    // Color ABABAB, font size 8, using Inter-Semi-Bold (loaded in layout)
+    // Color ABABAB, font size 10, using Inter-Medium (loaded in layout)
     IColor color(255, 171, 171, 171);
-    IText  itext(11.f, color, "Inter-Semi-Bold", EAlign::Near, EVAlign::Middle);
+    IText  itext(10.f, color, "Inter-Medium", EAlign::Near, EVAlign::Middle);
 
     g.DrawText(itext, text, mRECT);
     SetDirty(false);
@@ -957,17 +1048,17 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
 
   // Compressor — all zeros and lower bounds = 0 so that 0 is valid
   GetParam(kCompMix)->InitDouble      ("Comp Mix",       0.0,  0.0, 100.0, 1.0,  "%");
-  GetParam(kCompThreshold)->InitDouble("Comp Threshold", 0.0, -60.0,  0.0, 0.1,  "dB");
+  GetParam(kCompThreshold)->InitDouble("Comp Threshold", 0.0,  0.0,  0.0, 0.1,  "dB");
   GetParam(kCompRatio)->InitDouble    ("Comp Ratio",     0.0,  0.0,  20.0, 0.1,  ":1");
-  GetParam(kCompGain)->InitDouble     ("Comp Gain",      0.0, -24.0,  24.0, 0.1, "dB");
+  GetParam(kCompGain)->InitDouble     ("Comp Gain",      0.0,  0.0,  24.0, 0.1, "dB");
   GetParam(kCompAttack)->InitDouble   ("Comp Attack",    0.0,  0.0, 100.0, 0.1,  "ms");
-  GetParam(kCompRelease)->InitDouble  ("Comp Release",   0.0,  -10.0, 10.0, 1.0,  "ms");
+  GetParam(kCompRelease)->InitDouble  ("Comp Release",   0.0,  0.0, 10.0, 1.0,  "ms");
   GetParam(kCompBypass)->InitBool     ("Comp Bypass",    true);
 
   // Master / Output
   GetParam(kBypass)->InitBool("Bypass", false);
-  GetParam(kMasterIntensity)->InitDouble("Master Intensity", 50.0, 0.0, 100.0, 1.0, "%");
-  GetParam(kOutputLevel)->InitDouble("Output Level", 0.0, -24.0, 24.0, 0.1, "dB");
+  GetParam(kMasterIntensity)->InitDouble("Master Intensity", 0.0, 0.0, 100.0, 1.0, "%");
+  GetParam(kOutputLevel)->InitDouble("Output Level", 0.0, 0.0, 24.0, 0.1, "dB");
 
   // On load — all modules bypassed, Default/None active
   GetParam(kCompBypass)->Set(1.0);
@@ -990,15 +1081,16 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
     pGraphics->EnableMouseOver(true);
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, false);
     pGraphics->AttachPanelBackground(COLOR_BLACK);
-    //pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
+    pGraphics->LoadFont("Inter-Regular",  INTER_REGULAR_FN);
     pGraphics->LoadFont("Inter-Semi-Bold",  INTER_SEMI_BOLD_FN);
+    pGraphics->LoadFont("Inter-Medium",  INTER_MEDIUM_FN);
 
     // BACKGROUND
     IBitmap bg = pGraphics->LoadBitmap(MAIN_BACKGROUND_FN, 1);
     const IRECT bounds = pGraphics->GetBounds();
     pGraphics->AttachControl(new IBitmapControl(bounds, bg));
 
-    // Hover colors
+    // HOVER COLORS
     const IColor hoverColorButtons  = IColor(23, 184, 184, 184);
     const IColor hoverColorModules  = IColor(23, 14,  14,  14);
     const IColor hoverColorKnobs    = IColor(18, 184, 184, 184); // mid/small
@@ -1041,7 +1133,7 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
 
     IBitmap vocalsLabelBmp  = pGraphics->LoadBitmap(PRESET_VOCALS_LABLE_FN, 1);
     IBitmap padsLabelBmp    = pGraphics->LoadBitmap(PRESET_PADS_LABLE_FN,   1);
-    IBitmap drumsLabelBmp   = pGraphics->LoadBitmap(PRESET_DRUMS_LABLE_FN,  1);
+    IBitmap drumsLabelBmp   = pGraphics->LoadBitmap(PRESET_DRUMS_LABLE_FN,   1);
     IBitmap expLabelBmp     = pGraphics->LoadBitmap(PRESET_EXP_LABLE_FN,    1);
 
     IBitmap arrowBmp        = pGraphics->LoadBitmap(PRESET_GROUP_SELECT_ARROW_FN, 1);
@@ -1089,20 +1181,57 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
     const float kBigW = 29.f, kBigH = 29.f;
 
     // Tremolo
-    IRECT tremRateRect  (65.5f,  332.5f, 65.5f  + kBigW, 332.5f + kBigH);
-    IRECT tremDepthRect (180.5f, 332.5f, 180.5f + kBigW, 332.5f + kBigH);
+    IRECT tremRateRect  (65.5f,  325.5f, 65.5f  + kBigW, 325.5f + kBigH);
+    IRECT tremDepthRect (180.5f, 325.5f, 180.5f + kBigW, 325.5f + kBigH);
 
     // Pan Motion
-    IRECT panRateRect   (281.5f, 332.5f, 281.5f + kBigW, 332.5f + kBigH);
-    IRECT panDepthRect  (398.5f, 332.5f, 398.5f + kBigW, 332.5f + kBigH);
+    IRECT panRateRect   (281.5f, 325.5f, 281.5f + kBigW, 325.5f + kBigH);
+    IRECT panDepthRect  (398.5f, 325.5f, 398.5f + kBigW, 325.5f + kBigH);
 
     // Pitch Drift
-    IRECT pitchRateRect (497.5f, 332.5f, 497.5f + kBigW, 332.5f + kBigH);
-    IRECT pitchDepthRect(614.5f, 332.5f, 614.5f + kBigW, 332.5f + kBigH);
+    IRECT pitchRateRect (497.5f, 325.5f, 497.5f + kBigW, 325.5f + kBigH);
+    IRECT pitchDepthRect(614.5f, 325.5f, 614.5f + kBigW, 325.5f + kBigH);
 
     // Phaser
-    IRECT phaserRateRect (713.5f, 332.5f, 713.5f + kBigW, 332.5f + kBigH);
-    IRECT phaserDepthRect(830.5f, 332.5f, 830.5f + kBigW, 332.5f + kBigH);
+    IRECT phaserRateRect (713.5f, 325.5f, 713.5f + kBigW, 325.5f + kBigH);
+    IRECT phaserDepthRect(830.5f, 325.5f, 830.5f + kBigW, 325.5f + kBigH);
+    
+    // ------------------------------------------------------
+    //  Values under large Rate/Depth knobs (percentages)
+    // ------------------------------------------------------
+    const float labelY = 400.f;
+
+    auto MakeLabelRect = [](float cx, float cy)
+    {
+      const float halfW = 24.f;
+      const float halfH = 8.f;
+      return IRECT(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    };
+
+    // Tremolo
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(80.f,  labelY), kTremRate));
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(197.f, labelY), kTremDepth));
+
+    // Pan
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(296.f, labelY), kPanRate));
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(415.f, labelY), kPanDepth));
+
+    // Pitch
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(512.f, labelY), kPitchRate));
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(632.f, labelY), kPitchDepth));
+
+    // Phaser
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(728.f, labelY), kPhaserRate));
+    pGraphics->AttachControl(
+      new BigKnobValueTextControl(MakeLabelRect(847.f, labelY), kPhaserDepth));
+
 
     // BIG knobs — HAND cursor only, no hover overlay
     pGraphics->AttachControl(new HoverKnobRotaterControl(
@@ -1130,10 +1259,10 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
     const float kSmW  = 14.f,  kSmH  = 14.f;
 
     // COMP: Mix / Threshold / Ratio / Gain (mid)
-    IRECT compMixRect     ( 47.f,   512.f,  47.f + kMidW,   512.f + kMidH);
-    IRECT compThreshRect  (127.5f,  512.f, 127.5f + kMidW, 512.f + kMidH);
-    IRECT compRatioRect   (203.5f,  512.f, 203.5f + kMidW, 512.f + kMidH);
-    IRECT compGainRect    (274.5f,  513.f, 274.5f + kMidW, 513.f + kMidH);
+    IRECT compMixRect     ( 47.f,   512.f,  47.f + kMidW,  512.f + kMidH);
+    IRECT compThreshRect  (127.5f, 512.f, 127.5f + kMidW, 512.f + kMidH);
+    IRECT compRatioRect   (203.5f, 512.f, 203.5f + kMidW, 512.f + kMidH);
+    IRECT compGainRect    (274.5f, 513.f, 274.5f + kMidW, 513.f + kMidH);
 
     pGraphics->AttachControl(new HoverKnobRotaterControl(
       compMixRect, midKnob, kCompMix, hoverColorKnobs, 10.f, true));
@@ -1159,12 +1288,36 @@ IPlugEffect::IPlugEffect(const InstanceInfo& info)
       masterIntRect, midKnob, kMasterIntensity, hoverColorKnobs, 10.f, true));
 
     // OUTPUT: Level (mid)
-    IRECT outLevelRect(956.5f, 544.2f, 956.5f + kMidW, 544.2f + kMidH);
+    IRECT outLevelRect(956.7f, 544.2f, 956.7f + kMidW, 544.2f + kMidH);
     pGraphics->AttachControl(new HoverKnobRotaterControl(
       outLevelRect, midKnob, kOutputLevel, hoverColorKnobs, 10.f, true));
 
+    // ====== Value labels for MID knobs (COMP + MASTER) ======
+    {
+      const float midLabelY = 565.f;
+
+      auto MakeMidRect = [](float cx, float cy)
+      {
+        const float halfW = 22.f;
+        const float halfH = 7.f;
+        return IRECT(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+      };
+
+      // X: 56/137/213/284/469, Y: 565
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(56.f, midLabelY), kCompMix));
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(137.f, midLabelY), kCompThreshold));
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(213.f, midLabelY), kCompRatio));
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(284.f, midLabelY), kCompGain));
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(469.f, midLabelY), kMasterIntensity));
+    }
+
     // Output level numeric display
-    IRECT outTextRect(940.5f, 501.f, 990.5f, 521.f);
+    IRECT outTextRect(940.4f, 501.f, 990.4f, 521.f);
     pGraphics->AttachControl(new OutputLevelTextControl(outTextRect, this));
   };
 #endif
