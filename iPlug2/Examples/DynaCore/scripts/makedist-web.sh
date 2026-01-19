@@ -174,7 +174,7 @@ rm *.bak
 # copy the style & WAM favicon
 mkdir styles
 cp $IPLUG2_ROOT/IPlug/WEB/Template/styles/style.css styles/style.css
-cp $IPLUG2_ROOT/IPlug/WEB/Template/favicon.ico favicon.ico
+cp $IPLUG2_ROOT/IPlug/WEB/Template/DynaCore.ico DynaCore.ico
 
 echo MAKING  - WEB WASM MODULE -----------------------------
 

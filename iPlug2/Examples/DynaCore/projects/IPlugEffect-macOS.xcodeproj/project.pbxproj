@@ -57,7 +57,6 @@
 		4F6FD2B322675B6300FC59E6 /* IGraphicsCoreText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4F6FD2AF22675B6300FC59E6 /* IGraphicsCoreText.mm */; };
 		4F6FD2B422675B6300FC59E6 /* IGraphicsCoreText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4F6FD2AF22675B6300FC59E6 /* IGraphicsCoreText.mm */; };
 		4F722020225C1EB100FF0E7C /* commoniids.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F72201E225C1EB100FF0E7C /* commoniids.cpp */; };
-		4F78D88613B6382B0032E0F3 /* IPlugEffect.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4FD290A8137C34D700CEBE7E /* IPlugEffect.icns */; };
 		4F78D90B13B63BA50032E0F3 /* IPlugAPIBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F78D8ED13B63BA40032E0F3 /* IPlugAPIBase.cpp */; };
 		4F78D91813B63BA50032E0F3 /* IPlugParameter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F78D90413B63BA50032E0F3 /* IPlugParameter.cpp */; };
 		4F78D94513B63BA50032E0F3 /* IPlugAPIBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F78D8ED13B63BA40032E0F3 /* IPlugAPIBase.cpp */; };
@@ -174,6 +173,12 @@
 		99268DE12EBF7D4B008983DB /* presets_page@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99268DDD2EBF7D4B008983DB /* presets_page@2x.png */; };
 		99268DE22EBF7D4B008983DB /* presets_page.png in Resources */ = {isa = PBXBuildFile; fileRef = 99268DDC2EBF7D4B008983DB /* presets_page.png */; };
 		99268DE32EBF7D4B008983DB /* presets_page@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99268DDD2EBF7D4B008983DB /* presets_page@2x.png */; };
+		9946EF862F1E82290029E72F /* IPlugEffect.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF852F1E82290029E72F /* IPlugEffect.icns */; };
+		9946EF872F1E82290029E72F /* IPlugEffect.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF852F1E82290029E72F /* IPlugEffect.icns */; };
+		9946EF882F1E82290029E72F /* IPlugEffect.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF852F1E82290029E72F /* IPlugEffect.icns */; };
+		9946EF8A2F1E86490029E72F /* DynaCore.ico in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF892F1E86490029E72F /* DynaCore.ico */; };
+		9946EF8B2F1E86490029E72F /* DynaCore.ico in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF892F1E86490029E72F /* DynaCore.ico */; };
+		9946EF8C2F1E86490029E72F /* DynaCore.ico in Resources */ = {isa = PBXBuildFile; fileRef = 9946EF892F1E86490029E72F /* DynaCore.ico */; };
 		99BA08922EBFB04700842C3F /* preset_group_drums_select.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA088A2EBFB04700842C3F /* preset_group_drums_select.png */; };
 		99BA08932EBFB04700842C3F /* preset_group_exp_select@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA088D2EBFB04700842C3F /* preset_group_exp_select@2x.png */; };
 		99BA08942EBFB04700842C3F /* preset_group_vocals_select.png in Resources */ = {isa = PBXBuildFile; fileRef = 99BA08902EBFB04700842C3F /* preset_group_vocals_select.png */; };
@@ -621,7 +626,6 @@
 		4FD16D4313B635B2001D0217 /* swell.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swell.cpp; path = ../../../WDL/swell/swell.cpp; sourceTree = SOURCE_ROOT; };
 		4FD16D4513B635C8001D0217 /* swellappmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swellappmain.h; path = ../../../WDL/swell/swellappmain.h; sourceTree = SOURCE_ROOT; };
 		4FD16D4613B635C8001D0217 /* swellappmain.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = swellappmain.mm; path = ../../../WDL/swell/swellappmain.mm; sourceTree = SOURCE_ROOT; };
-		4FD290A8137C34D700CEBE7E /* IPlugEffect.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = IPlugEffect.icns; path = ../resources/IPlugEffect.icns; sourceTree = "<group>"; };
 		4FD5212E202A5B9B00A4D22A /* IPlugAU_view_factory.mm */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.cpp.objcpp; name = IPlugAU_view_factory.mm; path = ../../../IPlug/AUv2/IPlugAU_view_factory.mm; sourceTree = "<group>"; tabWidth = 2; };
 		4FD52130202A5B9B00A4D22A /* IPlugAU.r */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.rez; name = IPlugAU.r; path = ../../../IPlug/AUv2/IPlugAU.r; sourceTree = "<group>"; tabWidth = 2; };
 		4FD52134202A5BD000A4D22A /* dfx-au-utilities.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; name = "dfx-au-utilities.c"; path = "../../../IPlug/AUv2/dfx-au-utilities.c"; sourceTree = "<group>"; tabWidth = 2; };
@@ -683,6 +687,8 @@
 		99268D5F2EBEAF4E008983DB /* small_knob@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "small_knob@2x.png"; sourceTree = "<group>"; };
 		99268DDC2EBF7D4B008983DB /* presets_page.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = presets_page.png; sourceTree = "<group>"; };
 		99268DDD2EBF7D4B008983DB /* presets_page@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "presets_page@2x.png"; sourceTree = "<group>"; };
+		9946EF852F1E82290029E72F /* IPlugEffect.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = IPlugEffect.icns; sourceTree = "<group>"; };
+		9946EF892F1E86490029E72F /* DynaCore.ico */ = {isa = PBXFileReference; lastKnownFileType = image.ico; path = DynaCore.ico; sourceTree = "<group>"; };
 		99BA088A2EBFB04700842C3F /* preset_group_drums_select.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = preset_group_drums_select.png; sourceTree = "<group>"; };
 		99BA088B2EBFB04700842C3F /* preset_group_drums_select@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "preset_group_drums_select@2x.png"; sourceTree = "<group>"; };
 		99BA088C2EBFB04700842C3F /* preset_group_exp_select.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = preset_group_exp_select.png; sourceTree = "<group>"; };
@@ -826,6 +832,8 @@
 		089C167CFE841241C02AAC07 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				9946EF852F1E82290029E72F /* IPlugEffect.icns */,
+				9946EF892F1E86490029E72F /* DynaCore.ico */,
 				99268CF42EBE4004008983DB /* img */,
 				4FC82B4620BD522B00722133 /* fonts */,
 				4F1B4AE32014D33600BC64D4 /* IPlugEffect-macOS-MainMenu.xib */,
@@ -844,7 +852,6 @@
 				4F3E693A1409747300C4D749 /* IPlugEffect-VST3-Info.plist */,
 				4F23BA1313B647E50097A67E /* IPlugEffect-AU-Info.plist */,
 				4F4CC3811549B8A700A9EA21 /* IPlugEffect-AAX-Info.plist */,
-				4FD290A8137C34D700CEBE7E /* IPlugEffect.icns */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -1865,6 +1872,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9946EF862F1E82290029E72F /* IPlugEffect.icns in Resources */,
 				99268CFA2EBE4B4D008983DB /* Main_Background.png in Resources */,
 				99BA08B42EBFBE4C00842C3F /* revert_to_default@2x.png in Resources */,
 				99BA08B52EBFBE4C00842C3F /* revert_to_default.png in Resources */,
@@ -1898,6 +1906,7 @@
 				99BA09682EC81D7E00842C3F /* preset_pointer.png in Resources */,
 				99BA08C02EC01FA000842C3F /* compress_off.png in Resources */,
 				99BA08C12EC01FA000842C3F /* compress_off@2x.png in Resources */,
+				9946EF8C2F1E86490029E72F /* DynaCore.ico in Resources */,
 				99BA090A2EC0D5AB00842C3F /* preset_pads_label@2x.png in Resources */,
 				99BA090B2EC0D5AB00842C3F /* preset_drums_label@2x.png in Resources */,
 				99BA090C2EC0D5AB00842C3F /* preset_exp_label.png in Resources */,
@@ -1924,6 +1933,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9946EF872F1E82290029E72F /* IPlugEffect.icns in Resources */,
 				99268CF92EBE4B4D008983DB /* Main_Background.png in Resources */,
 				99BA08B62EBFBE4C00842C3F /* revert_to_default@2x.png in Resources */,
 				99BA08B72EBFBE4C00842C3F /* revert_to_default.png in Resources */,
@@ -1957,6 +1967,7 @@
 				99BA09642EC81D7E00842C3F /* preset_pointer.png in Resources */,
 				99BA08BC2EC01FA000842C3F /* compress_off.png in Resources */,
 				99BA08BD2EC01FA000842C3F /* compress_off@2x.png in Resources */,
+				9946EF8A2F1E86490029E72F /* DynaCore.ico in Resources */,
 				99BA09122EC0D5AB00842C3F /* preset_pads_label@2x.png in Resources */,
 				99BA09132EC0D5AB00842C3F /* preset_drums_label@2x.png in Resources */,
 				99BA09142EC0D5AB00842C3F /* preset_exp_label.png in Resources */,
@@ -2022,9 +2033,9 @@
 				99BA08D72EC0229100842C3F /* module_on@2x.png in Resources */,
 				99BA08D82EC0229100842C3F /* module_off@2x.png in Resources */,
 				99BA08D92EC0229100842C3F /* module_on.png in Resources */,
-				4F78D88613B6382B0032E0F3 /* IPlugEffect.icns in Resources */,
 				99268D502EBE80BA008983DB /* big_knob.png in Resources */,
 				99268D5A2EBEAE50008983DB /* mid_knob.png in Resources */,
+				9946EF882F1E82290029E72F /* IPlugEffect.icns in Resources */,
 				99BA08DC2EC0C20F00842C3F /* preset_group_select_arrow.png in Resources */,
 				99BA08DD2EC0C20F00842C3F /* preset_group_select_arrow@2x.png in Resources */,
 				99268D5B2EBEAE50008983DB /* mid_knob@2x.png in Resources */,
@@ -2037,6 +2048,7 @@
 				99BA08C82EC0200800842C3F /* compress_on.png in Resources */,
 				99BA08C92EC0200800842C3F /* compress_on@2x.png in Resources */,
 				99268CFB2EBE4B53008983DB /* Main_Background@2x.png in Resources */,
+				9946EF8B2F1E86490029E72F /* DynaCore.ico in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

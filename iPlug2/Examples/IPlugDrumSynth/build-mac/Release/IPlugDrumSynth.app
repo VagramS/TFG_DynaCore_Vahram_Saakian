@@ -1,1 +1,0 @@
-../../../../../../../Applications/IPlugDrumSynth.app
