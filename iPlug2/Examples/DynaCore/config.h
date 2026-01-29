@@ -95,6 +95,9 @@
 
 #define PRESET_POINTER_FN "preset_pointer.png"
 
+#define NEXT_PRESET_FN "next_preset.png"
+#define PREVIOUS_PRESET_FN "previous_preset.png"
+
 // === BYPASS ===
 #define BYPASS_OFF_FN "bypass_off.png"
 #define BYPASS_ON_FN "bypass_on.png"
