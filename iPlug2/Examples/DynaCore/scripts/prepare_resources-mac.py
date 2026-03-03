@@ -169,11 +169,11 @@ def main():
   auv3['CFBundlePackageType'] = "XPC!"
   auv3['NSExtension'] = dict(
   NSExtensionAttributes = dict(
-                               AudioComponentBundle = "com.AcmeInc.app." + config['BUNDLE_NAME'] + ".AUv3Framework",
+                               AudioComponentBundle = "com.UCM1.app." + config['BUNDLE_NAME'] + ".AUv3Framework",
                                AudioComponents = [{}]),
 #                               NSExtensionServiceRoleType = "NSExtensionServiceRoleTypeEditor",
   NSExtensionPointIdentifier = NSEXTENSIONPOINTIDENTIFIER,
-  NSExtensionPrincipalClass = "IPlugAUViewController_vIPlugEffect"
+  NSExtensionPrincipalClass = "IPlugAUViewController_vDynaCore"
                              )
   auv3['NSExtension']['NSExtensionAttributes']['AudioComponents'] = [{}]
   auv3['NSExtension']['NSExtensionAttributes']['AudioComponents'][0]['description'] = config['PLUG_NAME']
@@ -226,7 +226,7 @@ def main():
   macOSapp['NSPrincipalClass'] = "SWELLApplication"
   macOSapp['NSMainNibFile'] = config['BUNDLE_NAME'] + "-macOS-MainMenu"
   macOSapp['LSApplicationCategoryType'] = "public.app-category.music"
-  macOSapp['CFBundleIconFile'] = config['DynaCore'] + ".icns"
+  macOSapp['CFBundleIconFile'] = config['BUNDLE_NAME'] + ".icns"
   macOSapp['NSMicrophoneUsageDescription'] = 	"This app needs mic access to process audio."
 
   with open(plistpath, 'wb') as fp:

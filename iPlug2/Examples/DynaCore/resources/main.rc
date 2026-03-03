@@ -65,7 +65,7 @@ END
 
 IDD_DIALOG_MAIN DIALOG 0, 0, 300, 300
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "IPlugEffect"
+CAPTION "DynaCore"
 MENU IDR_MENU1
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -162,7 +162,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "IPlugEffect.ico"
+IDI_ICON1               ICON                    "DynaCore.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -204,10 +204,10 @@ BEGIN
         BEGIN
             VALUE "FileVersion", "0.0.1"
             VALUE "ProductVersion", "0.0.1"
-            VALUE "FileDescription", "IPlugEffect"
-            VALUE "InternalName", "IPlugEffect"
-            VALUE "ProductName", "IPlugEffect"
-            VALUE "CompanyName", "AcmeInc"
+            VALUE "FileDescription", "DynaCore"
+            VALUE "InternalName", "DynaCore"
+            VALUE "ProductName", "DynaCore"
+            VALUE "CompanyName", "UCM1"
             VALUE "LegalCopyright", "Copyright 2020 Acme Inc"
             VALUE "LegalTrademarks", "VST is a trademark of Steinberg Media Technologies GmbH, Audio Unit is a trademark of Apple, Inc."
         END

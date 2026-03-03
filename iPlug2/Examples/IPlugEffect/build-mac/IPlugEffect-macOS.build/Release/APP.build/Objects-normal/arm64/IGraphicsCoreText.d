@@ -1,0 +1,23 @@
+dependencies: \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugOBJCPrefix.pch \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsCoreText.mm \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsCoreText.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsStructs.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugUtilities.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/heapbuf.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdltypes.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlstring.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugConstants.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPlatform.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugLogger.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/mutex.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlatomic.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugStructs.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/ptrlist.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugMidi.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsPrivate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlendian.h \
+  ../../../Dependencies/IGraphics/NanoSVG/src/nanosvg.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsUtilities.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsConstants.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPaths.h

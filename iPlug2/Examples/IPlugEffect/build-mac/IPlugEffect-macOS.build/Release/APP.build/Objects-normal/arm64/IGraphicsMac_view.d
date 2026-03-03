@@ -1,0 +1,36 @@
+dependencies: \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugOBJCPrefix.pch \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsMac_view.mm \
+  ../../../WDL/wdlutf8.h ../../../WDL/wdltypes.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsMac_view.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsMac.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphics_select.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPlatform.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Drawing/IGraphicsNanoVG.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphics.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugConstants.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugLogger.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlstring.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/heapbuf.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdltypes.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/mutex.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlatomic.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugUtilities.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugPaths.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsConstants.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsStructs.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugStructs.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/ptrlist.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugMidi.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsPrivate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/WDL/wdlendian.h \
+  ../../../Dependencies/IGraphics/NanoSVG/src/nanosvg.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsUtilities.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsPopupMenu.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IGraphicsEditorDelegate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugEditorDelegate.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IPlug/IPlugParameter.h \
+  ../../../Dependencies/IGraphics/NanoVG/src/nanovg.h \
+  ../../../Dependencies/IGraphics/MetalNanoVG/src/nanovg_mtl.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/Platforms/IGraphicsCoreText.h \
+  /Users/vahram/Desktop/Iplug2/iPlug2/IGraphics/IControl.h

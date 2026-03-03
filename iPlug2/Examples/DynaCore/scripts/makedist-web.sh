@@ -12,7 +12,7 @@ IPLUG2_ROOT=../../..
 PROJECT_ROOT=$SCRIPT_DIR/..
 IPLUG2_ROOT=$SCRIPT_DIR/$IPLUG2_ROOT
 
-PROJECT_NAME=IPlugEffect
+PROJECT_NAME=DynaCore
 WEBSOCKET_MODE=0
 EMRUN_BROWSER=chrome
 LAUNCH_EMRUN=1
@@ -174,7 +174,7 @@ rm *.bak
 # copy the style & WAM favicon
 mkdir styles
 cp $IPLUG2_ROOT/IPlug/WEB/Template/styles/style.css styles/style.css
-cp $IPLUG2_ROOT/IPlug/WEB/Template/DynaCore.ico DynaCore.ico
+cp $IPLUG2_ROOT/IPlug/WEB/Template/favicon.ico favicon.ico
 
 echo MAKING  - WEB WASM MODULE -----------------------------
 
