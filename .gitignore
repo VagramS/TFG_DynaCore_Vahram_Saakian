@@ -1,1 +1,20 @@
-iPlug2/.DS_Store
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Xcode user-specific state (not shared)
+*.xcuserstate
+xcuserdata/
+
+# Build artifacts
+build.db
+**/XCBuildData/
+**/DerivedData/
+*.o
+*.d
+
+# Installer staging (generated, not source)
+iPlug2/Examples/DynaCore/installer/_staging/
+
+# Windows-specific
+Thumbs.db

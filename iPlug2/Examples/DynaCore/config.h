@@ -2,8 +2,7 @@
 
 // ======================================================
 // DynaCore - Main Plugin Config
-// Target formats in this project: APP + AUv2 + VST3
-// (AAX / CLAP / VST2 / AUv3 removed from targets)
+// Target formats: AUv2 + VST3
 // ======================================================
 
 #define PLUG_NAME "DynaCore"
@@ -45,7 +44,7 @@
 #define PLUG_SHARED_RESOURCES 0
 #define PLUG_HOST_RESIZE 0
 
-// AUv2 entry points (must be unique per plugin)
+// AUv2 entry points
 #define AUV2_ENTRY DynaCore_Entry
 #define AUV2_ENTRY_STR "DynaCore_Entry"
 #define AUV2_FACTORY DynaCore_Factory
@@ -55,18 +54,10 @@
 // VST3
 #define VST3_SUBCATEGORY "Fx"
 
-// Standalone APP
-#define APP_NUM_CHANNELS 2
-#define APP_N_VECTOR_WAIT 0
-#define APP_MULT 1
-#define APP_COPY_AUV3 0
-#define APP_SIGNAL_VECTOR_SIZE 64
-
 // ======================================================
 // Resources / Fonts
 // ======================================================
 
-#define ROBOTO_FN "Roboto-Regular.ttf"
 #define INTER_SEMI_BOLD_FN "Inter-Semi-Bold.ttf"
 #define INTER_REGULAR_FN "Inter-Regular.ttf"
 #define INTER_MEDIUM_FN "Inter-Medium.ttf"
@@ -91,10 +82,10 @@
 #define PRESET_GROUP_DRUMS_SELECT_FN "preset_group_drums_select.png"
 #define PRESET_GROUP_EXP_SELECT_FN "preset_group_exp_select.png"
 
-#define PRESET_VOCALS_LABLE_FN "preset_vocals_label.png"
-#define PRESET_PADS_LABLE_FN "preset_pads_label.png"
-#define PRESET_DRUMS_LABLE_FN "preset_drums_label.png"
-#define PRESET_EXP_LABLE_FN "preset_exp_label.png"
+#define PRESET_VOCALS_LABEL_FN "preset_vocals_label.png"
+#define PRESET_PADS_LABEL_FN "preset_pads_label.png"
+#define PRESET_DRUMS_LABEL_FN "preset_drums_label.png"
+#define PRESET_EXP_LABEL_FN "preset_exp_label.png"
 
 #define PRESET_GROUP_SELECT_ARROW_FN "preset_group_select_arrow.png"
 #define PRESET_DIVIDER_FN "preset_divider.png"

@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>DynaCore</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DynaCore v1.0.0 Copyright 2020 Acme Inc</string>
+	<string>DynaCore v1.0.0 Copyright 2025/26 Vahram Saakian</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.UCM1.aax.DynaCore</string>
 	<key>CFBundleInfoDictionaryVersion</key>

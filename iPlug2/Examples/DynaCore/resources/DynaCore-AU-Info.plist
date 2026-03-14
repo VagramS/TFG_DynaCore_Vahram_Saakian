@@ -10,13 +10,13 @@
 			<key>factoryFunction</key>
 			<string>DynaCore_Factory</string>
 			<key>manufacturer</key>
-			<string>Acme</string>
+			<string>UCM1</string>
 			<key>name</key>
-			<string>UCM1: DynaCore</string>
+			<string>UCM: DynaCore</string>
 			<key>sandboxSafe</key>
 			<true/>
 			<key>subtype</key>
-			<string>Ipef</string>
+			<string>DnCr</string>
 			<key>type</key>
 			<string>aufx</string>
 			<key>version</key>
@@ -30,7 +30,7 @@
 	<key>CFBundleExecutable</key>
 	<string>DynaCore</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DynaCore v1.0.0 Copyright 2020 Acme Inc</string>
+	<string>DynaCore v1.0.0 Copyright 2025/26 Vahram Saakian</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.UCM1.audiounit.DynaCore</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -42,7 +42,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0.0</string>
 	<key>CFBundleSignature</key>
-	<string>Ipef</string>
+	<string>DnCr</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>
 	<key>CSResourcesFileMapped</key>

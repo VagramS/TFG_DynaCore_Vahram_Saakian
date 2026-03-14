@@ -1,3 +1,8 @@
+// DynaCore.cpp
+// Main implementation file — DSP, UI controls, preset system.
+//
+// Author: Vahram Saakian, UCM TFG 2025-2026
+
 #include "DynaCore.h"
 #include "IPlug_include_in_plug_src.h"
 #include "IControls.h"
@@ -7,7 +12,7 @@
 #include <string>
 #include "wdlstring.h"
 
-// ---------- helper for hover overlay ----------
+// draws a semi-transparent tint over a rect (used for hover effects)
 namespace
 {
   inline void DrawHoverOverlay(IGraphics& g,
@@ -22,17 +27,17 @@ namespace
   }
 }
 
-// ----------------- Rate snapping (Hz) -----------------
-static const double kRateStepsHz[] =
+// LFO rate knobs are continuous but we snap to a fixed set of clean values.
+// 0.00 = stopped, anything below the dead zone threshold also snaps to 0.
+static constexpr double kRateStepsHz[] =
 {
-  0.00,  // = unplugged/stop
+  0.00,  // = stopped
   0.10, 0.12, 0.16, 0.18, 0.20, 0.22, 0.25, 0.28, 0.30, 0.35, 0.40, 0.45, 0.50,
   0.60, 0.65, 0.80, 0.90, 1.00, 1.60, 2.00, 3.00, 5.00, 6.00
 };
 
 static double SnapRateHz(double hz)
 {
-  // Guard against invalid input.
   if (hz <= 0.0) return 0.0;
 
   double best = kRateStepsHz[0];
@@ -50,13 +55,13 @@ static double SnapRateHz(double hz)
   return best;
 }
 
-// ---------------- Rate helpers (must be declared before AutoGateModulesFromParams) ----------------
+// checks if a param index is one of the four Rate knobs
 static inline bool IsRateParamIdx(int idx)
 {
   return idx == kTremRate || idx == kPanRate || idx == kPitchRate || idx == kPhaserRate;
 }
 
-// Dead zone: if 0 < Hz < threshold => treat as 0.0
+// tiny Hz values near zero are indistinguishable from stopped, so snap them to 0
 static inline double RateDeadZoneHz(int idx)
 {
   switch (idx)
@@ -81,11 +86,12 @@ static inline double ApplyRateDeadZone(int idx, double hz)
   return hz;
 }
 
+// auto-bypass a module when Rate or Depth hits zero — only checks the module that just changed
 static void AutoGateModulesFromParams(IEditorDelegate* dlg, int changedParamIdx)
 {
   if (!dlg) return;
 
-  // Prevent recursion when we change bypass params from inside this function
+  // guard against re-entry: setting bypass fires OnParamChange which calls this again
   static bool sInAutoGate = false;
   if (sInAutoGate) return;
   sInAutoGate = true;
@@ -116,18 +122,16 @@ static void AutoGateModulesFromParams(IEditorDelegate* dlg, int changedParamIdx)
 
   auto SetBypass = [dlg](int bypassIdx, bool bypass)
   {
-    // 1.0 = bypass (OFF), 0.0 = active (ON)
+    // 1.0 = bypassed, 0.0 = active
     const double target = bypass ? 1.0 : 0.0;
 
     if (IParam* bp = dlg->GetParam(bypassIdx))
     {
-      // Avoid spamming if already correct
       if (std::fabs(bp->GetNormalized() - target) > 1e-9)
         dlg->SendParameterValueFromUI(bypassIdx, target);
     }
   };
 
-  // ---- Mod modules: ON only if BOTH Rate and Depth are non-zero ----
   struct ModGate { int rateIdx; int depthIdx; int bypassIdx; };
 
   static const ModGate kMods[] =
@@ -140,19 +144,24 @@ static void AutoGateModulesFromParams(IEditorDelegate* dlg, int changedParamIdx)
 
   for (const auto& m : kMods)
   {
+    if (changedParamIdx != m.rateIdx && changedParamIdx != m.depthIdx)
+      continue;
+
     const bool on = IsRateOn(m.rateIdx) && IsDepthOn(m.depthIdx);
     SetBypass(m.bypassIdx, !on);
   }
 
-  // Compressor: ON only if Mix > 0
-  const bool compOn = GetPlain(kCompMix) > 0.0;
-  SetBypass(kCompBypass, !compOn);
+  // Compressor: only auto-gate when Mix itself changes
+  if (changedParamIdx == kCompMix)
+  {
+    const bool compOn = GetPlain(kCompMix) > 0.0;
+    SetBypass(kCompBypass, !compOn);
+  }
 
   sInAutoGate = false;
 }
 
-// Forward declaration
-class RevertButtonControl;
+class RevertButtonControl; // forward declaration
 
 // Preset groups
 enum class EPresetGroup
@@ -164,8 +173,7 @@ enum class EPresetGroup
   Experimental
 };
 
-// ==== PRESET NAMES (by group/index) ====
-// Index = cell index in the right list (1..4 on the UI, 0..3 in code)
+// Preset names
 static const char* kPresetName_None = "Default/None";
 
 static const char* kPresets_Vocals[4] = {
@@ -260,9 +268,9 @@ static EPresetGroup PrevGroup(EPresetGroup g)
   return kPresetCarouselOrder[i];
 }
 
+// Step carousel by dir (+1 / -1), wrapping across groups
 static void StepPresetCarousel(EPresetGroup& g, int& idx, int dir)
 {
-  // dir: +1 next, -1 previous
   if (dir == 0) return;
 
   // If nothing selected yet, start from the beginning/end of the carousel
@@ -297,8 +305,7 @@ static void StepPresetCarousel(EPresetGroup& g, int& idx, int dir)
   {
     // Move to next group, first preset
     g = NextGroup(g);
-    const int c2 = GetPresetCountGlobal(g);
-    idx = (c2 > 0) ? 0 : 0;
+    idx = 0;
   }
   else if (idx < 0)
   {
@@ -310,6 +317,7 @@ static void StepPresetCarousel(EPresetGroup& g, int& idx, int dir)
 }
 
 
+// All parameter values for one preset
 struct PresetValues
 {
   double tremBypass, tremRate, tremDepth;
@@ -319,60 +327,62 @@ struct PresetValues
 
   double compBypass, compMix, compThreshold, compRatio, compGain, compAttack, compRelease;
 
+  double width;           // stereo width 0-200%
   double masterIntensity;
   double outputLevel;
 };
 
-// ---- PRESET VALUE TABLES ----
+// Preset value tables — columns: trem | pan | pitch | phaser | comp | width | masterInt | output
+
 static const PresetValues kPresetVals_Vocals[4] =
 {
-  // 1) Cold Whisper 14
-  { 0,0.35,8,   0,0.18,16,  0,0.12,3,   0,0.10,6,   0,65,-22,3.2,1.5,8,140,  12,-0.5 },
+  // 1) Cold Whisper 14 — intimate, breathy vocal with gentle tremolo shimmer + tight compression
+  { 0,2.80,15,   1,0,0,      0,0.08,4,    1,0,0,       0,85,-18,4.0,3.0,5,80,     100, 55, 0.0 },
 
-  // 2) Blade Mono Focus
-  { 1,0,0,      0,0.10,4,   1,0,0,      0,0.45,10,  0,80,-18,4.5,2.0,6,110,  15,-1.0 },
+  // 2) Blade Mono Focus — aggressive mono vocal, heavy compression, phaser edge
+  { 1,0,0,       1,0,0,      1,0,0,       0,1.20,45,   0,100,-12,8.0,6.0,2,60,    40, 80, 1.5 },
 
-  // 3) Spectral Glide
-  { 1,0,0,      0,0.30,22,  0,0.22,7,   0,0.25,14,  0,55,-20,2.5,1.0,12,220, 18,-0.8 },
+  // 3) Spectral Glide — ethereal vocal, wide stereo pan + pitch drift chorus
+  { 1,0,0,       0,0.15,70,  0,0.30,18,   0,0.40,30,   0,40,-28,2.0,0.0,20,300,   150, 65,-1.0 },
 
-  // 4) Ritual Double
-  { 0,1.00,10,  0,0.50,28,  0,0.35,4,   1,0,0,      0,70,-24,3.8,2.5,7,160,  20,-1.2 }
+  // 4) Ritual Double — rhythmic vocal effect, pulsing tremolo + pan + compression
+  { 0,4.50,40,   0,2.25,55,  1,0,0,       1,0,0,       0,75,-15,5.5,4.0,3,100,    120, 70, 0.5 }
 };
 
 static const PresetValues kPresetVals_Pads[4] =
 {
-  // 1) Cryostasis Pad
-  { 0,0.18,12,  0,0.12,18,  1,0,0,      0,0.20,24,  0,35,-26,2.0,0.0,20,300, 10,-1.5 },
+  // 1) Cryostasis Pad — frozen, almost static pad with deep phaser sweep + heavy compression
+  { 1,0,0,       1,0,0,      0,0.05,8,    0,0.06,80,   0,30,-35,2.0,-2.0,40,600,  160, 40,-3.0 },
 
-  // 2) Nocturne Pulse
-  { 0,0.40,22,  1,0,0,      1,0,0,      0,0.35,18,  0,30,-28,2.2,0.0,18,380, 14,-1.0 },
+  // 2) Nocturne Pulse — slow breathing tremolo + wide pan for ambient pads
+  { 0,0.25,60,   0,0.12,85,  1,0,0,       1,0,0,       0,50,-30,1.8,0.0,30,500,   180, 45,-2.0 },
 
-  // 3) Moon Tides
-  { 1,0,0,      0,0.16,35,  0,0.10,5,   0,0.28,20,  0,25,-24,1.8,0.0,25,450, 12,-1.0 },
+  // 3) Moon Tides — gentle stereo movement with subtle pitch drift detune
+  { 1,0,0,       0,0.08,50,  0,0.12,12,   0,0.15,35,   0,20,-32,1.5,-1.0,35,700,  140, 35,-2.5 },
 
-  // 4) Glass Cathedral
-  { 1,0,0,      0,0.22,14,  1,0,0,      0,0.60,26,  0,40,-22,2.8,0.5,15,260, 16,-0.8 }
+  // 4) Glass Cathedral — shimmering phaser + fast subtle tremolo sparkle
+  { 0,7.00,12,   1,0,0,      1,0,0,       0,0.30,65,   0,45,-25,2.5,1.0,15,350,   100, 55,-1.5 }
 };
 
 static const PresetValues kPresetVals_Drums[3] =
 {
-  // 1) Iron March
-  { 0,2.00,18,  1,0,0,      1,0,0,      0,0.90,10,  0,70,-16,5.0,1.0,4,120,  22,-1.5 },
+  // 1) Iron March — punchy, aggressive drums with hard compression + fast phaser grit
+  { 1,0,0,       1,0,0,      1,0,0,       0,3.50,25,   0,100,-10,12.0,8.0,0.5,40, 100, 90, 3.0 },
 
-  // 2) Ghost Hats
-  { 0,6.00,12,  0,3.00,40,  1,0,0,      0,5.00,18,  0,35,-18,2.4,0.0,3,90,   15,-0.8 },
+  // 2) Ghost Hats — hi-hat/perc focused, fast tremolo gate + extreme pan movement
+  { 0,8.00,70,   0,5.00,90,  1,0,0,       1,0,0,       0,60,-20,3.0,0.0,1,50,     80, 50,-1.0 },
 
-  // 3) Submerge Kit
-  { 0,0.90,24,  1,0,0,      0,0.35,2,   0,0.65,28,  0,60,-22,3.5,1.5,8,180,  18,-1.2 }
+  // 3) Submerge Kit — underwater drum effect, heavy pitch drift + deep phaser + squashed compression
+  { 0,0.60,30,   1,0,0,      0,0.40,35,   0,0.20,70,   0,80,-14,6.0,4.0,5,150,    60, 75, 1.0 }
 };
 
 static const PresetValues kPresetVals_Exp[2] =
 {
-  // 1) Event Horizon
-  { 1,0,0,      1,0,0,      0,0.20,9,   0,0.12,40,  0,45,-26,3.0,0.0,12,300, 24,-1.5 },
+  // 1) Event Horizon — extreme pitch drift + deep phaser, no tremolo/pan, cinematic drone
+  { 1,0,0,       1,0,0,      0,0.08,50,   0,0.04,95,   0,30,-40,1.5,-3.0,50,800,  200, 25,-4.0 },
 
-  // 2) Time Shear
-  { 0,1.60,10,  0,0.80,55,  0,0.45,6,   1,0,0,      0,50,-20,2.8,0.5,10,200, 20,-1.0 }
+  // 2) Time Shear — all modules active, chaotic modulation for glitch/experimental
+  { 0,3.70,55,   0,1.80,75,  0,0.60,25,   0,2.50,50,   0,70,-12,7.0,5.0,1,60,     130, 95, 2.0 }
 };
 
 static const PresetValues* GetPresetValues(EPresetGroup g, int idx)
@@ -388,6 +398,7 @@ static const PresetValues* GetPresetValues(EPresetGroup g, int idx)
   return nullptr;
 }
 
+// Apply a preset via SendParameterValueFromUI (so the host sees changes like user input)
 static void ApplyPresetToParams(IEditorDelegate* dlg, EPresetGroup g, int idx)
 {
   const PresetValues* pv = GetPresetValues(g, idx);
@@ -458,24 +469,21 @@ static void ApplyPresetToParams(IEditorDelegate* dlg, EPresetGroup g, int idx)
     SendPlain(kCompRelease,   pv->compRelease);
   }
 
+  // Mastering
+  SendPlain(kWidth,            pv->width);
+
   // Master / Output
   SendPlain(kMasterIntensity, pv->masterIntensity);
   SendPlain(kOutputLevel,     pv->outputLevel);
 }
 
-// ==== Global state for presets page ====
-// Last opened group (purely for UX)
-static EPresetGroup gLastPresetGroup = EPresetGroup::Vocals;
-
-// Single globally selected preset: group + index (-1 = none)
+// Global preset state — UI thread only
+static EPresetGroup gLastPresetGroup      = EPresetGroup::Vocals;
 static EPresetGroup gSelectedGroupGlobal  = EPresetGroup::None;
 static int          gSelectedPresetGlobal = -1;
-
-// Human-readable name of selected preset (for any future use / debug)
 static std::string  gSelectedPresetName   = kPresetName_None;
 
-
-// ---------- Reset main parameters to defaults (triggered from UI) ----------
+// Default preset values — used on first open and for "Revert to Default"
 namespace
 {
   struct DefaultParam { int idx; double value; };
@@ -492,20 +500,23 @@ namespace
 
     { kGain,            0.0   },
 
-    { kTremRate,        0.0   }, { kTremDepth,     0.0   },
-    { kPanRate,         0.0   }, { kPanDepth,      0.0   },
-    { kPitchRate,       0.0   }, { kPitchDepth,    0.0   },
-    { kPhaserRate,      0.0   }, { kPhaserDepth,   0.0   },
+    // 4 modulation modules: OFF by default, with musically useful starting values
+    { kTremRate,   4.0  }, { kTremDepth,   50.0 },   // 4 Hz, medium depth
+    { kPanRate,    0.5  }, { kPanDepth,    60.0 },   // slow wide pan
+    { kPitchRate,  0.3  }, { kPitchDepth,  40.0 },   // gentle vibrato/chorus
+    { kPhaserRate, 0.8  }, { kPhaserDepth, 70.0 },   // moderate phaser sweep
 
-    { kCompMix,         100.0 },
-    { kCompThreshold,   -25.0 },
-    { kCompRatio,       2.0   },
-    { kCompGain,        0.0   },
-    { kCompAttack,      10.0   },
-    { kCompRelease,     120.0   },
+    // Compressor: punchy parallel compression, lets transients through
+    { kCompMix,        65.0  },   // parallel blend — adds punch without over-squashing
+    { kCompThreshold, -18.0  },   // moderate threshold, catches peaks on most material
+    { kCompRatio,       3.0  },   // 3:1 — controls dynamics without killing them
+    { kCompGain,        3.0  },   // makeup gain to compensate
+    { kCompAttack,     15.0  },   // 15ms — lets initial transient punch through
+    { kCompRelease,   200.0  },   // 200ms — musical, tracks natural decay
 
-    { kMasterIntensity, 100.0 },
-    { kOutputLevel,     0.0   }
+    { kWidth,           110.0 },  // slightly wider than mono — open, transparent
+    { kMasterIntensity, 100.0 },  // full effect by default
+    { kOutputLevel,    -1.0   }   // -1 dB headroom to prevent clipping
   };
 
   template <typename Setter>
@@ -534,8 +545,7 @@ void DynaCore::ApplyDefaultPresetFromUI()
 }
 
 
-// =================== PRESETS OVERLAY ===================
-
+// Full-screen preset selection overlay (left = category tabs, right = preset names)
 class PresetsPageControl : public IControl
 {
 public:
@@ -936,7 +946,7 @@ private:
   IControl*    mRevertButton  = nullptr;
 };
 
-// ---------- Revert To Default (programmatic hover + hand) ----------
+// Hit area over "Revert to Default" bitmap — applies defaults and closes overlay on click
 class RevertButtonControl : public IControl
 {
 public:
@@ -1010,7 +1020,7 @@ PresetsPageControl* mOverlay = nullptr;
 
 };
 
-// ---------- "SELECT PRESET" button that opens the overlay ----------
+// "SELECT PRESET" button — opens PresetsPageControl overlay on click
 class SelectPresetControl : public IControl
 {
 public:
@@ -1119,6 +1129,7 @@ private:
   IBitmap mPresetPointerBmp;
 };
 
+// Prev/next arrow buttons — step through all presets across groups (dir: +1/-1)
 class PresetStepButtonControl : public IControl
 {
 public:
@@ -1189,7 +1200,7 @@ private:
 };
 
 
-// ========== Toggle button with hover overlay ==========
+// Bitmap toggle button with hover tint (1.0 = bypassed/OFF, 0.0 = active/ON)
 class HoverButtonWithOverlay : public IControl
 {
 public:
@@ -1258,9 +1269,7 @@ private:
     float   mCornerRadius = 0.f;
 };
 
-//============================================================
-// Background arc for BIG knob (drawn UNDER the rotating cap)
-//============================================================
+// Value-tracking arc ring drawn behind a knob (mouse-transparent)
 class KnobValueArcControl : public IControl
 {
 public:
@@ -1307,7 +1316,7 @@ private:
 };
 
 
-// ========== Knob with optional hover overlay, HAND cursor ==========
+// Knob with hover tint, HAND cursor, rate dead-zone enforcement, and auto-gate on change
 class HoverKnobRotaterControl : public IBKnobRotaterControl
 {
 public:
@@ -1357,28 +1366,25 @@ public:
     // 2) draw value arc ON TOP (so it won't be hidden if your knob bitmap contains the ring)
     if (mDrawValueArc)
     {
-const float t = (float) norm;
+      const float t = (float) norm;
 
-// ring rect is the control bounds (optionally padded)
-const IRECT arcR = (mArcPad != 0.f) ? mRECT.GetPadded(mArcPad) : mRECT;
+      // Ring rect is the control bounds (optionally padded)
+      const IRECT arcR = (mArcPad != 0.f) ? mRECT.GetPadded(mArcPad) : mRECT;
 
-const float cx = arcR.MW();
-const float cy = arcR.MH();
-const float radius = 0.5f * std::min(arcR.W(), arcR.H()) - (mArcThickness * 0.5f);
+      const float cx     = arcR.MW();
+      const float cy     = arcR.MH();
+      const float radius = 0.5f * std::min(arcR.W(), arcR.H()) - (mArcThickness * 0.5f);
 
-// IMPORTANT:
-// In this project build, IGraphics::PathArc expects angles in DEGREES (not radians).
-// Passing radians makes the arc so small it looks like a dot.
-const float start = mArcStartDeg;
-const float end   = mArcStartDeg + (mArcSweepDeg * t);
+      // NOTE: IGraphics::PathArc expects angles in DEGREES (not radians).
+      const float start = mArcStartDeg;
+      const float end   = mArcStartDeg + (mArcSweepDeg * t);
 
-if (t > 0.f)
-{
-  g.PathClear();
-  g.PathArc(cx, cy, radius, start, end);
-  g.PathStroke(mArcColor, mArcThickness);
-}
-
+      if (t > 0.f)
+      {
+        g.PathClear();
+        g.PathArc(cx, cy, radius, start, end);
+        g.PathStroke(mArcColor, mArcThickness);
+      }
     }
 
     // 3) hover overlay (optional)
@@ -1492,62 +1498,14 @@ private:
   IColor mArcColor = IColor(255, 0x50, 0x62, 0x74);
   float  mArcStartDeg = 225.f;
   float  mArcSweepDeg = 270.f;
-// ========== Value arc for big knob background ring (non-interactive) ==========
-class KnobValueArcControl : public IControl
-{
-public:
-  KnobValueArcControl(const IRECT& bounds,
-                      int paramIdx,
-                      IColor arcColor = IColor(255, 0x50, 0x62, 0x74), // #506274
-                      float arcThickness = 2.f,
-                      float arcStartDeg = 225.f,
-                      float arcSweepDeg = 270.f)
-  : IControl(bounds, paramIdx)
-  , mArcColor(arcColor)
-  , mArcThickness(arcThickness)
-  , mArcStartDeg(arcStartDeg)
-  , mArcSweepDeg(arcSweepDeg)
-  {
-    mIgnoreMouse = true;
-  }
-
-  void Draw(IGraphics& g) override
-  {
-    double norm = GetValue();
-    if (const IParam* p = GetParam())
-      norm = p->GetNormalized();
-
-    const float t = (float) norm;
-
-    const float cx = mRECT.MW();
-    const float cy = mRECT.MH();
-    const float radius = 0.5f * std::min(mRECT.W(), mRECT.H()) - (mArcThickness * 0.5f);
-
-    const float start = mArcStartDeg;
-    const float end   = mArcStartDeg + mArcSweepDeg;
-    const float cur   = start + t * (end - start);
-
-    // IMPORTANT: In this project PathArc expects DEGREES (not radians).
-    g.PathClear();
-    g.PathArc(cx, cy, radius, start, cur);
-    g.PathStroke(mArcColor, mArcThickness);
-  }
-
-    private:
-      IColor mArcColor;
-      float  mArcThickness = 2.f;
-      float  mArcStartDeg = 225.f;
-      float  mArcSweepDeg = 270.f;
-  };
-
 };
 
 
-// =================== Output level text ===================
-class OutputLevelTextControl : public IControl
+// Stereo output level bars + dB readout (green→yellow→red, fast attack / slow release)
+class StereoLevelMeterControl : public IControl
 {
 public:
-  OutputLevelTextControl(const IRECT& bounds, DynaCore* plugin)
+  StereoLevelMeterControl(const IRECT& bounds, DynaCore* plugin)
   : IControl(bounds), mPlugin(plugin)
   { mIgnoreMouse = true; }
 
@@ -1555,39 +1513,204 @@ public:
   {
     if (!mPlugin) return;
 
-    const double db = mPlugin->GetOutputLevelDB();
+    // Detect if DSP stopped updating (playback stopped)
+    uint64_t currentCount = mPlugin->GetMeterUpdateCount();
+    if (currentCount != mLastUpdateCount) {
+      mStaleFrames = 0;
+      mLastUpdateCount = currentCount;
+    } else {
+      mStaleFrames++;
+    }
+    // Only consider stale after 10+ consecutive Draw calls with no DSP update (~170ms)
+    bool dspStale = (mStaleFrames > 10);
+    bool bypassed = mPlugin->GetParam(kBypass)->Bool();
+    bool forceZero = dspStale || bypassed;
+
+    const double rawDbL = forceZero ? -100.0 : mPlugin->GetOutputLevelDBL();
+    const double rawDbR = forceZero ? -100.0 : mPlugin->GetOutputLevelDBR();
+
+    // Keep raw dB for text display (unclamped, can be > 0)
+    double rawMaxDB = std::max(rawDbL, rawDbR);
+
+    auto dbToNorm = [](double db) -> float {
+      double n = (db - (-54.0)) / (0.0 - (-54.0));
+      if (n < 0.0) n = 0.0;
+      if (n > 1.0) n = 1.0;
+      return static_cast<float>(n);
+    };
+
+    float targetL = dbToNorm(rawDbL);
+    float targetR = dbToNorm(rawDbR);
+
+    // Visual smoothing — fast rise, slow fall (same speed for stop/bypass/normal decay)
+    auto smoothVal = [](float current, float target) -> float {
+      float diff = target - current;
+      float rate = (diff > 0.f) ? 0.18f : 0.07f; // fast attack, slow release always
+      return current + diff * rate;
+    };
+    mVisualL = smoothVal(mVisualL, targetL);
+    mVisualR = smoothVal(mVisualR, targetR);
+    if (mVisualL < 0.002f) mVisualL = 0.f;
+    if (mVisualR < 0.002f) mVisualR = 0.f;
+
+    float normL = mVisualL;
+    float normR = mVisualR;
+
+    // Bar coordinates (-0.1px left from previous)
+    constexpr float kBarTop = 78.f, kBarBottom = 466.f;
+    constexpr float kLeftBarL = 955.6f, kLeftBarR = 963.6f;
+    constexpr float kRightBarL = 965.6f, kRightBarR = 973.6f;
+    constexpr float kBarH = kBarBottom - kBarTop;
+
+    // Pixel-by-pixel rendering — monolithic bars
+    auto drawBar = [&](float barL, float barR, float norm) {
+      if (norm <= 0.001f) return;
+      float fillH = kBarH * norm;
+      float fillTop = kBarBottom - fillH;
+      int yStart = static_cast<int>(fillTop);
+      int yEnd   = static_cast<int>(kBarBottom);
+      for (int py = yStart; py < yEnd; py++) {
+        float pos = (kBarBottom - static_cast<float>(py)) / kBarH;
+        int r, gr, b;
+        if (pos < 0.55f) {
+          float t = pos / 0.55f;
+          r = int(76 + t * (180 - 76));
+          gr = int(209 + t * (220 - 209));
+          b = int(55 + t * (20 - 55));
+        } else if (pos < 0.85f) {
+          float t = (pos - 0.55f) / 0.30f;
+          r = int(180 + t * (241 - 180));
+          gr = int(220 + t * (196 - 220));
+          b = int(20 + t * (15 - 20));
+        } else {
+          float t = (pos - 0.85f) / 0.15f;
+          r = int(241 + t * (237 - 241));
+          gr = int(196 + t * (67 - 196));
+          b = int(15 + t * (55 - 15));
+        }
+        g.FillRect(IColor(255, r, gr, b),
+                   IRECT(barL, static_cast<float>(py), barR, static_cast<float>(py + 1)));
+      }
+    };
+
+    drawBar(kLeftBarL, kLeftBarR, normL);
+    drawBar(kRightBarL, kRightBarR, normR);
+
+    // Numeric dB display — uses raw dB (unclamped, shows > 0dB correctly)
+    double targetTextDB = (rawMaxDB > -54.0) ? rawMaxDB : -100.0;
+    // Extra slow smoothing for stable text readout
+    if (targetTextDB > mTextDB)
+      mTextDB += (targetTextDB - mTextDB) * 0.030; // slow attack
+    else
+      mTextDB += (targetTextDB - mTextDB) * 0.016; // very slow release
 
     char buf[32];
-    std::snprintf(buf, sizeof(buf), "%.1f", db);
-
-    // Shadow glow behind text
-    IColor shadowColor(10, 255, 255, 255);
-    IText shadowText(17.f, shadowColor, "Inter-Semi-Bold",
-                     EAlign::Center, EVAlign::Middle);
-
-    for (int dy = -1; dy <= 1; ++dy)
-    {
-      for (int dx = -1; dx <= 1; ++dx)
-      {
-        if (dx == 0 && dy == 0) continue;
-        IRECT r(mRECT.L + dx, mRECT.T + dy, mRECT.R + dx, mRECT.B + dy);
-        g.DrawText(shadowText, buf, r);
-      }
+    float maxVis = std::max(mVisualL, mVisualR);
+    if (maxVis < 0.001f && mTextDB < -53.0) {
+      std::snprintf(buf, sizeof(buf), " -inf");
+    } else {
+      // Snap tiny negative values to 0.0 to prevent "-0.0" display artefact
+      double displayDB = (mTextDB > -0.05 && mTextDB < 0.0) ? 0.0 : mTextDB;
+      std::snprintf(buf, sizeof(buf), "%5.1f", displayDB); // "  0.0", " -3.2", "-12.4"
     }
 
-    // Main text
-    IText text(17.f, COLOR_WHITE, "Inter-Semi-Bold",
-               EAlign::Center, EVAlign::Middle);
-    g.DrawText(text, buf, mRECT);
+    IRECT textRect(mRECT.L + 5.5f, mRECT.B - 46.f, mRECT.R + 9.5f, mRECT.B - 28.f);
+    IText text(14.f, COLOR_WHITE, "Inter-Semi-Bold", EAlign::Center, EVAlign::Middle);
+    g.DrawText(text, buf, textRect);
 
     SetDirty(false);
   }
 
 private:
   DynaCore* mPlugin = nullptr;
+  float mVisualL = 0.f;
+  float mVisualR = 0.f;
+  double mTextDB = -100.0; // smoothed dB for text display
+  uint64_t mLastUpdateCount = 0;
+  int mStaleFrames = 100;
 };
 
-// =================== Value text under BIG knobs ===================
+// GR meter bars — top-to-bottom (0 dB at top, 24 dB at bottom), effective GR after mix
+class GRMeterControl : public IControl
+{
+public:
+  GRMeterControl(const IRECT& bounds, DynaCore* plugin)
+  : IControl(bounds), mPlugin(plugin)
+  { mIgnoreMouse = true; }
+
+  void Draw(IGraphics& g) override
+  {
+    if (!mPlugin) return;
+
+    // Detect if DSP stopped updating
+    uint64_t currentCount = mPlugin->GetGRUpdateCount();
+    if (currentCount != mLastUpdateCount) {
+      mStaleFrames = 0;
+      mLastUpdateCount = currentCount;
+    } else {
+      mStaleFrames++;
+    }
+    bool dspStale = (mStaleFrames > 10);
+    bool bypassed = mPlugin->GetParam(kBypass)->Bool();
+    bool compBypassed = mPlugin->GetParam(kCompBypass)->Bool();
+    bool forceZero = dspStale || bypassed || compBypassed;
+
+    double grL = forceZero ? 0.0 : mPlugin->GetGainReductionL();
+    double grR = forceZero ? 0.0 : mPlugin->GetGainReductionR();
+
+    // Map GR dB to 0..1 (0dB=0, 24dB=1)
+    float targetL = static_cast<float>(std::min(grL / 24.0, 1.0));
+    float targetR = static_cast<float>(std::min(grR / 24.0, 1.0));
+    if (targetL < 0.f) targetL = 0.f;
+    if (targetR < 0.f) targetR = 0.f;
+
+    // Visual smoothing — fast attack, slow release
+    auto smoothVal = [](float current, float target) -> float {
+      float diff = target - current;
+      float rate = (diff > 0.f) ? 0.18f : 0.07f;
+      return current + diff * rate;
+    };
+    mVisualL = smoothVal(mVisualL, targetL);
+    mVisualR = smoothVal(mVisualR, targetR);
+    if (mVisualL < 0.002f) mVisualL = 0.f;
+    if (mVisualR < 0.002f) mVisualR = 0.f;
+    // Snap to full when sustained near maximum — asymptotic smoothing never reaches 1.0 exactly
+    if (mVisualL > 0.96f && targetL >= 0.999f) mVisualL = 1.0f;
+    if (mVisualR > 0.96f && targetR >= 0.999f) mVisualR = 1.0f;
+
+    // Bar coordinates — 10px wide bars inside GR rail slots
+    // kBarBottom slightly past the 24dB mark so max compression fills the slot
+    constexpr float kBarTop    = 499.f, kBarBottom = 559.f;
+    constexpr float kLeftBarL  = 416.f, kLeftBarR  = 426.f;  // 10px, center 421
+    constexpr float kRightBarL = 452.f, kRightBarR = 462.f;  // 10px, center 457
+    constexpr float kBarH      = kBarBottom - kBarTop;       // 60px total rail height
+    constexpr float cr         = 5.f;                        // = half bar width
+
+    // Monolithic capsule bars — full opacity, rounded top and bottom.
+    // Skip below 2*cr to avoid the NanoVG circle/blob artefact.
+    auto drawBar = [&](float barL, float barR, float norm) {
+      if (norm <= 0.001f) return;
+      float fillH = kBarH * norm;
+      if (fillH <= 2.f * cr) return;
+      g.FillRoundRect(IColor(255, 211, 222, 242),
+                      IRECT(barL, kBarTop, barR, kBarTop + fillH), cr);
+    };
+
+    drawBar(kLeftBarL, kLeftBarR, mVisualL);
+    drawBar(kRightBarL, kRightBarR, mVisualR);
+
+    SetDirty(false);
+  }
+
+private:
+  DynaCore* mPlugin = nullptr;
+  float mVisualL = 0.f;
+  float mVisualR = 0.f;
+  uint64_t mLastUpdateCount = 0;
+  int mStaleFrames = 100;
+};
+
+// Value label under big Rate/Depth knobs (rate → "X.XXHz", depth → "X%")
 class BigKnobValueTextControl : public IControl
 {
 public:
@@ -1643,7 +1766,7 @@ private:
 };
 
 
-// =================== Value text under MID knobs ===================
+// Value label under mid/small knobs — format varies per param (dB, ratio, Hz, %)
 class MidKnobValueTextControl : public IControl
 {
 public:
@@ -1706,6 +1829,11 @@ public:
       else
         s.SetFormatted(64, "%+.1f dB", db); // + for positive values
     }
+    else if (mParamIdx == kWidth)
+    {
+      // Display width directly as percent (0-200%)
+      s.SetFormatted(64, "%.0f%%", p->Value());
+    }
     else
     {
       // Default display: percent based on normalized value
@@ -1723,7 +1851,7 @@ private:
 
 
 
-// =================== Preset title text (X:45, Y:77) ===================
+// Displays the active preset name top-left (or "SELECT PRESET" if none)
 class PresetNameTextControl : public IControl
 {
 public:
@@ -1746,8 +1874,6 @@ public:
     SetDirty(false);
   }
 };
-
-// =================== PLUGIN CONSTRUCTOR ===================
 
 DynaCore::DynaCore(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
@@ -1784,18 +1910,20 @@ DynaCore::DynaCore(const InstanceInfo& info)
   GetParam(kCompRelease)->InitDouble  ("Comp Release",   120.0,   0.0, 1000.0, 1.0, "ms");
   GetParam(kCompBypass)->InitBool     ("Comp Bypass",    false); // false = ACTIVE (not bypassed)
 
+  // Mastering
+  GetParam(kWidth)->InitDouble("Width", 100.0, 0.0, 200.0, 0.1, "%");
 
   // Master / Output
   GetParam(kBypass)->InitBool("Bypass", false);
   GetParam(kMasterIntensity)->InitDouble("Master Intensity", 100.0, 0.0, 100.0, 1.0, "%");
   GetParam(kOutputLevel)->InitDouble("Output Level", 0.0, -20.0, 20.0, 0.1, "dB");
 
-  // On load — all modules bypassed, Default/None active
-  GetParam(kCompBypass)->Set(0.0); // 0 = active, 1 = bypass
-  GetParam(kTremBypass)->Set(1.0);
-  GetParam(kPanBypass)->Set(1.0);
-  GetParam(kPitchBypass)->Set(1.0);
-  GetParam(kPhaserBypass)->Set(1.0);
+  // init params to defaults so the plugin opens in a known state
+  ApplyDefaultPresetParams([this](int pIdx, double plain)
+  {
+    if (auto* p = GetParam(pIdx))
+      p->Set(plain);
+  });
 
   gSelectedGroupGlobal  = EPresetGroup::None;
   gSelectedPresetGlobal = -1;
@@ -1811,22 +1939,20 @@ DynaCore::DynaCore(const InstanceInfo& info)
     pGraphics->EnableMouseOver(true);
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, false);
     pGraphics->AttachPanelBackground(COLOR_BLACK);
-    pGraphics->LoadFont("Inter-Regular",  INTER_REGULAR_FN);
-    pGraphics->LoadFont("Inter-Semi-Bold",  INTER_SEMI_BOLD_FN);
-    pGraphics->LoadFont("Inter-Medium",  INTER_MEDIUM_FN);
+    pGraphics->LoadFont("Inter-Regular",   INTER_REGULAR_FN);
+    pGraphics->LoadFont("Inter-Semi-Bold", INTER_SEMI_BOLD_FN);
+    pGraphics->LoadFont("Inter-Medium",    INTER_MEDIUM_FN);
 
-    // BACKGROUND
     IBitmap bg = pGraphics->LoadBitmap(MAIN_BACKGROUND_FN, 1);
     const IRECT bounds = pGraphics->GetBounds();
     pGraphics->AttachControl(new IBitmapControl(bounds, bg));
 
-    // HOVER COLORS
     const IColor hoverColorButtons  = IColor(23, 184, 184, 184);
     const IColor hoverColorModules  = IColor(23, 14,  14,  14);
-    const IColor hoverColorKnobs    = IColor(18, 184, 184, 184); // mid/small
+    const IColor hoverColorKnobs    = IColor(18, 184, 184, 184);
 
-    // COMPRESSOR ON/OFF
-    IRECT compBtnRect(371.f, 447.f, 392.f, 467.f);
+    // COMPRESSOR ON/OFF (moved to new position near cyan indicator)
+    IRECT compBtnRect(459.f, 447.f, 480.f, 467.f);
     IBitmap bmpOff = pGraphics->LoadBitmap(COMP_OFF_FN, 1);
     IBitmap bmpOn  = pGraphics->LoadBitmap(COMP_ON_FN,  1);
     pGraphics->AttachControl(new HoverButtonWithOverlay(
@@ -1861,10 +1987,10 @@ DynaCore::DynaCore(const InstanceInfo& info)
     IBitmap drumsSelectBmp  = pGraphics->LoadBitmap(PRESET_GROUP_DRUMS_SELECT_FN,  1);
     IBitmap expSelectBmp    = pGraphics->LoadBitmap(PRESET_GROUP_EXP_SELECT_FN,    1);
 
-    IBitmap vocalsLabelBmp  = pGraphics->LoadBitmap(PRESET_VOCALS_LABLE_FN, 1);
-    IBitmap padsLabelBmp    = pGraphics->LoadBitmap(PRESET_PADS_LABLE_FN,   1);
-    IBitmap drumsLabelBmp   = pGraphics->LoadBitmap(PRESET_DRUMS_LABLE_FN,   1);
-    IBitmap expLabelBmp     = pGraphics->LoadBitmap(PRESET_EXP_LABLE_FN,    1);
+    IBitmap vocalsLabelBmp  = pGraphics->LoadBitmap(PRESET_VOCALS_LABEL_FN, 1);
+    IBitmap padsLabelBmp    = pGraphics->LoadBitmap(PRESET_PADS_LABEL_FN,   1);
+    IBitmap drumsLabelBmp   = pGraphics->LoadBitmap(PRESET_DRUMS_LABEL_FN,   1);
+    IBitmap expLabelBmp     = pGraphics->LoadBitmap(PRESET_EXP_LABEL_FN,    1);
 
     IBitmap arrowBmp        = pGraphics->LoadBitmap(PRESET_GROUP_SELECT_ARROW_FN, 1);
     IBitmap revertBmp       = pGraphics->LoadBitmap(REVERT_TO_DEFAULT_FN,        1);
@@ -1979,8 +2105,7 @@ DynaCore::DynaCore(const InstanceInfo& info)
       new BigKnobValueTextControl(MakeLabelRect(847.f, labelY), kPhaserDepth));
 
 
-    // BIG knobs — HAND cursor only, no hover overlay
-    // BIG knobs — background ring arc + rotating cap (HAND cursor only, no hover overlay)
+    // Big knobs — arc ring + rotating cap, no hover overlay
     auto AttachBigKnobWithArc = [&](const IRECT& knobRect, int paramIdx)
     {
       const IRECT ringRect = knobRect.GetPadded(6.4f);
@@ -1993,23 +2118,19 @@ DynaCore::DynaCore(const InstanceInfo& info)
     auto AttachMidKnobWithArc = [&](const IRECT& knobRect, int paramIdx)
     {
       const IRECT ringRect = knobRect.GetPadded(5.7f);
-
       pGraphics->AttachControl(new KnobValueArcControl(
         ringRect, paramIdx, IColor(245, 171, 171, 171), 2.f, 222.f, 270.f));
-
       pGraphics->AttachControl(new HoverKnobRotaterControl(
-        knobRect, midKnob, paramIdx, hoverColorKnobs, 10.f, false));
+        knobRect, midKnob, paramIdx, hoverColorKnobs, 10.f, true));
     };
 
     auto AttachSmallKnobWithArc = [&](const IRECT& knobRect, int paramIdx)
     {
       const IRECT ringRect = knobRect.GetPadded(4.9f);
-
       pGraphics->AttachControl(new KnobValueArcControl(
         ringRect, paramIdx, IColor(245, 171, 171, 171), 2.f, 223.f, 270.f));
-
       pGraphics->AttachControl(new HoverKnobRotaterControl(
-        knobRect, smallKnob, paramIdx, hoverColorKnobs, 10.f, false));
+        knobRect, smallKnob, paramIdx, hoverColorKnobs, 10.f, true));
     };
 
     AttachBigKnobWithArc(tremRateRect,   kTremRate);
@@ -2031,45 +2152,28 @@ DynaCore::DynaCore(const InstanceInfo& info)
     IRECT compRatioRect   (203.5f, 512.f, 203.5f + kMidW, 512.f + kMidH);
     IRECT compGainRect    (274.5f, 513.f, 274.5f + kMidW, 513.f + kMidH);
 
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compMixRect, midKnob, kCompMix, hoverColorKnobs, 10.f, true));
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compThreshRect, midKnob, kCompThreshold, hoverColorKnobs, 10.f, true));
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compRatioRect, midKnob, kCompRatio, hoverColorKnobs, 10.f, true));
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compGainRect, midKnob, kCompGain, hoverColorKnobs, 10.f, true));
-    
     AttachMidKnobWithArc(compMixRect, kCompMix);
     AttachMidKnobWithArc(compThreshRect, kCompThreshold);
     AttachMidKnobWithArc(compRatioRect, kCompRatio);
     AttachMidKnobWithArc(compGainRect, kCompGain);
-    
 
     // COMP: Attack / Release (small)
     IRECT compAttackRect  (351.2f, 492.2f, 351.2f + kSmW, 492.2f + kSmH);
     IRECT compReleaseRect (351.2f, 540.2f, 351.2f + kSmW, 540.2f + kSmH);
 
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compAttackRect, smallKnob, kCompAttack,  hoverColorKnobs, 10.f, true));
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      compReleaseRect, smallKnob, kCompRelease, hoverColorKnobs, 10.f, true));
-    
     AttachSmallKnobWithArc(compAttackRect, kCompAttack);
     AttachSmallKnobWithArc(compReleaseRect, kCompRelease);
 
-    // MASTER: Intensity (mid)
-    IRECT masterIntRect(459.6f, 512.8f, 459.6f + kMidW, 512.8f + kMidH);
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      masterIntRect, midKnob, kMasterIntensity, hoverColorKnobs, 10.f, true));
-    
+    // MASTERING: Width (mid) — in MASTERING section
+    IRECT widthRect(532.5f, 512.f, 532.5f + kMidW, 512.f + kMidH);
+    AttachMidKnobWithArc(widthRect, kWidth);
+
+    // MASTERING: Intensity (mid) — moved to MASTERING section
+    IRECT masterIntRect(617.5f, 512.f, 617.5f + kMidW, 512.f + kMidH);
     AttachMidKnobWithArc(masterIntRect, kMasterIntensity);
 
     // OUTPUT: Level (mid)
     IRECT outLevelRect(954.5f, 527.2f, 954.5f + kMidW, 527.2f + kMidH);
-    pGraphics->AttachControl(new HoverKnobRotaterControl(
-      outLevelRect, midKnob, kOutputLevel, hoverColorKnobs, 10.f, true));
-    
     AttachMidKnobWithArc(outLevelRect, kOutputLevel);
 
     // ====== Value labels for MID knobs (COMP + MASTER) ======
@@ -2083,7 +2187,6 @@ DynaCore::DynaCore(const InstanceInfo& info)
         return IRECT(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
       };
 
-      // X: 56/137/213/284/469, Y: 565
       pGraphics->AttachControl(
         new MidKnobValueTextControl(MakeMidRect(56.f, midLabelY), kCompMix));
       pGraphics->AttachControl(
@@ -2093,57 +2196,492 @@ DynaCore::DynaCore(const InstanceInfo& info)
       pGraphics->AttachControl(
         new MidKnobValueTextControl(MakeMidRect(284.f, midLabelY), kCompGain));
       pGraphics->AttachControl(
-        new MidKnobValueTextControl(MakeMidRect(469.f, midLabelY), kMasterIntensity));
+        new MidKnobValueTextControl(MakeMidRect(542.f, midLabelY), kWidth));
+      pGraphics->AttachControl(
+        new MidKnobValueTextControl(MakeMidRect(627.f, midLabelY), kMasterIntensity));
       pGraphics->AttachControl(
         new MidKnobValueTextControl(MakeMidRect(963.f, midLabelY + 14), kOutputLevel));
     }
 
-    // Output level numeric display
-    IRECT outTextRect(937.8f, 481.f, 990.4f, 521.f);
-    pGraphics->AttachControl(new OutputLevelTextControl(outTextRect, this));
+    // GR (Gain Reduction) meter in compression section
+    IRECT grMeterRect(412.f, 491.f, 472.f, 572.f);  // generous margins: bars at x=416..462, y=499..559
+    pGraphics->AttachControl(new GRMeterControl(grMeterRect, this));
+
+    // Stereo output level meter (two bars + dB readout)
+    IRECT meterRect(930.f, 72.f, 978.f, 525.f);
+    pGraphics->AttachControl(new StereoLevelMeterControl(meterRect, this));
   };
 #endif
 }
 
-// =================== DSP ===================
 #if IPLUG_DSP
+
+// ---------------------------------------------------------------------------
+// DSP constants and inline helpers
+// ---------------------------------------------------------------------------
+namespace
+{
+  constexpr double kPi    = 3.14159265358979323846;
+  constexpr double kTwoPi = 6.283185307179586476925286766559;
+  constexpr double kSqrt2 = 1.4142135623730951;         ///< √2 for constant-power panning
+
+  /// exp(x * kLn10Over20) ≡ pow(10, x/20) — avoids expensive pow() per sample.
+  static const double kLn10Over20 = std::log(10.0) / 20.0;
+
+  /**
+   * @brief First-order allpass filter in lattice form.
+   *
+   * Implements:  v[n] = x[n] − a·v[n−1]  ;  y[n] = a·v[n] + v[n−1]
+   *
+   * @param input  Current input sample.
+   * @param coeff  Allpass coefficient (from AllpassCoeff).
+   * @param state  Filter state variable (updated in-place).
+   * @return Filtered output sample.
+   */
+  inline double AllpassProcess(double input, double coeff, double& state)
+  {
+    const double v = input - coeff * state;
+    const double out = coeff * v + state;
+    state = v;
+    return out;
+  }
+
+  /**
+   * @brief Compute first-order allpass coefficient for a given cutoff.
+   *
+   * Formula: a = (tan(π·fc/fs) − 1) / (tan(π·fc/fs) + 1)
+   *
+   * @param fc         Cutoff frequency in Hz.
+   * @param sampleRate Host sample rate in Hz.
+   * @return Allpass coefficient in (−1, 1).
+   */
+  inline double AllpassCoeff(double fc, double sampleRate)
+  {
+    const double t = std::tan(kPi * fc / sampleRate);
+    return (t - 1.0) / (t + 1.0);
+  }
+
+  /**
+   * @brief Read from a circular delay buffer with fractional-sample interpolation.
+   *
+   * Uses linear interpolation between adjacent samples for sub-sample accuracy.
+   *
+   * @param buf          Pointer to the circular buffer.
+   * @param bufSize      Length of the buffer in samples.
+   * @param writeIdx     Current write position.
+   * @param delaySamples Desired delay in fractional samples.
+   * @return Interpolated output sample.
+   */
+  inline double DelayRead(const double* buf, int bufSize, int writeIdx, double delaySamples)
+  {
+    double readPos = static_cast<double>(writeIdx) - delaySamples;
+    if (readPos < 0.0) readPos += static_cast<double>(bufSize);
+
+    int idx0 = static_cast<int>(readPos);
+    int idx1 = idx0 + 1;
+    if (idx0 >= bufSize) idx0 -= bufSize;
+    if (idx1 >= bufSize) idx1 -= bufSize;
+
+    const double frac = readPos - idx0;
+    return buf[idx0] + frac * (buf[idx1] - buf[idx0]);
+  }
+
+  /**
+   * @brief Compute gain reduction in dB from a peak-envelope value.
+   *
+   * Used inside the compressor section of ProcessBlock.  If the envelope
+   * exceeds the threshold, the excess is reduced by (1 − 1/ratio).
+   *
+   * @param env        Peak envelope level (linear amplitude).
+   * @param threshDB   Compressor threshold in dB.
+   * @param ratio      Compressor ratio (≥ 1.0).
+   * @return Gain reduction in dB (≥ 0).
+   */
+  inline double ComputeGR(double env, double threshDB, double ratio)
+  {
+    const double envDB = (env > 1e-10) ? 20.0 * std::log10(env) : -200.0;
+    if (envDB > threshDB)
+      return (envDB - threshDB) * (1.0 - 1.0 / ratio);
+    return 0.0;
+  }
+
+  /**
+   * @brief Compute effective gain reduction accounting for parallel mix.
+   *
+   * effectiveGR = −20·log10((1−mix) + mix·10^(−rawGR/20))
+   *
+   * @param rawGR     Raw GR in dB from the compressor.
+   * @param compMix   Parallel mix fraction (0.0 … 1.0).
+   * @return Effective GR in dB (≥ 0).
+   */
+  inline double EffectiveGR(double rawGR, double compMix)
+  {
+    if (rawGR <= 0.0) return 0.0;
+    const double mixedGain = (1.0 - compMix) + compMix * std::exp(-rawGR * kLn10Over20);
+    return -20.0 * std::log10(std::max(mixedGain, 1e-10));
+  }
+} // namespace
+
+/// @see DynaCore::OnReset (DynaCore.h)
+void DynaCore::OnReset()
+{
+  mSampleRate = GetSampleRate();
+
+  mSmoothTremRate.SetSmoothTime(5.0, mSampleRate);
+  mSmoothTremDepth.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPanRate.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPanDepth.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPitchRate.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPitchDepth.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPhaserRate.SetSmoothTime(5.0, mSampleRate);
+  mSmoothPhaserDepth.SetSmoothTime(5.0, mSampleRate);
+  mSmoothMasterInt.SetSmoothTime(5.0, mSampleRate);
+  mSmoothOutGain.SetSmoothTime(5.0, mSampleRate);
+  mSmoothBypass.SetSmoothTime(5.0, mSampleRate);
+  mSmoothCompThresh.SetSmoothTime(5.0, mSampleRate);
+  mSmoothCompRatio.SetSmoothTime(5.0, mSampleRate);
+  mSmoothCompGain.SetSmoothTime(5.0, mSampleRate);
+  mSmoothCompMix.SetSmoothTime(5.0, mSampleRate);
+  mSmoothWidth.SetSmoothTime(5.0, mSampleRate);
+
+  mTremPhase = mPanPhase = mPitchPhase = mPhaserPhase = 0.0;
+
+  std::memset(mPitchDelayBuf, 0, sizeof(mPitchDelayBuf));
+  mPitchDelayWriteIdx = 0;
+
+  std::memset(mAllpassState, 0, sizeof(mAllpassState));
+
+  mCompEnv[0] = mCompEnv[1] = 0.0;
+
+  mOutputLevelDBL = mOutputLevelDBR = -100.0;
+  mOutputSmoothedL = mOutputSmoothedR = -100.0;
+}
+
+/// @see DynaCore::ProcessBlock (DynaCore.h)
 void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const bool bypass   = GetParam(kBypass)->Bool();
-  const double outDB  = GetParam(kOutputLevel)->Value();
-  const double outAmp = std::pow(10.0, outDB / 20.0);
-  const int nChans    = NOutChansConnected();
+  // grab all params once per block, then smooth per-sample inside the loop
+  const double bypassTarget = GetParam(kBypass)->Bool() ? 1.0 : 0.0;
+  const double outDB     = GetParam(kOutputLevel)->Value();
+  const double outAmp    = std::exp(outDB * kLn10Over20);
+  const int nChans       = NOutChansConnected();
 
-  double sumSquares = 0.0;
-  int sampleCount   = 0;
+  const bool tremBypass  = GetParam(kTremBypass)->Bool();
+  const double tremRate  = GetParam(kTremRate)->Value();
+  const double tremDepth = GetParam(kTremDepth)->Value() / 100.0;
+
+  const bool panBypass   = GetParam(kPanBypass)->Bool();
+  const double panRate   = GetParam(kPanRate)->Value();
+  const double panDepth  = GetParam(kPanDepth)->Value() / 100.0;
+
+  const bool pitchBypass = GetParam(kPitchBypass)->Bool();
+  const double pitchRate = GetParam(kPitchRate)->Value();
+  const double pitchDepth= GetParam(kPitchDepth)->Value() / 100.0;
+
+  const bool phaserBypass= GetParam(kPhaserBypass)->Bool();
+  const double phaserRate= GetParam(kPhaserRate)->Value();
+  const double phaserDepth= GetParam(kPhaserDepth)->Value() / 100.0;
+
+  // Compressor params
+  const bool compBypass    = GetParam(kCompBypass)->Bool();
+  const double compThresh  = GetParam(kCompThreshold)->Value();  // dB
+  const double compRatio   = GetParam(kCompRatio)->Value();      // :1
+  const double compGainDB  = GetParam(kCompGain)->Value();       // dB makeup
+  const double compMix     = GetParam(kCompMix)->Value() / 100.0;
+  const double compAttackMs  = GetParam(kCompAttack)->Value();   // ms
+  const double compReleaseMs = GetParam(kCompRelease)->Value();  // ms
+
+  const double masterInt = GetParam(kMasterIntensity)->Value() / 100.0;
+  const double widthPct  = GetParam(kWidth)->Value(); // 0-200%
+
+  const double sr    = mSampleRate;
+  const double invSr = 1.0 / sr;
+
+  // one-pole IIR attack/release coefficients (0.0 = instant response)
+  const double compAttackCoeff  = (compAttackMs  > 0.0)
+    ? std::exp(-kTwoPi / (compAttackMs  * 0.001 * sr)) : 0.0;
+  const double compReleaseCoeff = (compReleaseMs > 0.0)
+    ? std::exp(-kTwoPi / (compReleaseMs * 0.001 * sr)) : 0.0;
+
+  constexpr double kPitchCenterDelayMs = 20.0; // static centre delay
+  constexpr double kPitchModDepthMs    = 10.0; // ±LFO excursion
+
+  // phaser sweeps 200–4000 Hz on a log scale; precompute log ratio so per-sample exp is cheap
+  constexpr double kPhaserMinFreq     = 200.0;
+  constexpr double kPhaserMaxFreq     = 4000.0;
+  const double phaserFreqRatio        = kPhaserMaxFreq / kPhaserMinFreq;
+  const double phaserFreqRatioLog     = std::log(phaserFreqRatio);
+
+  const double bypassRampRate = 1.0 / (0.010 * sr); // ~10ms module bypass fade
+
+  double peakL = 0.0;
+  double peakR = 0.0;
+  double lastGainReductionL  = 0.0;
+  double lastGainReductionR  = 0.0;
 
   for (int s = 0; s < nFrames; ++s)
   {
-    for (int c = 0; c < nChans; ++c)
-    {
-      const sample inS  = inputs[c][s];
+    // Smooth params per-sample
+    const double sTremRate   = mSmoothTremRate.Process(tremRate);
+    const double sTremDepth  = mSmoothTremDepth.Process(tremDepth);
+    const double sPanRate    = mSmoothPanRate.Process(panRate);
+    const double sPanDepth   = mSmoothPanDepth.Process(panDepth);
+    const double sPitchRate  = mSmoothPitchRate.Process(pitchRate);
+    const double sPitchDepth = mSmoothPitchDepth.Process(pitchDepth);
+    const double sPhaserRate = mSmoothPhaserRate.Process(phaserRate);
+    const double sPhaserDepth= mSmoothPhaserDepth.Process(phaserDepth);
+    const double sMasterInt  = mSmoothMasterInt.Process(masterInt);
+    const double sOutAmp     = mSmoothOutGain.Process(outAmp);
 
-      // TODO: add processing chain later
-      const sample proc = inS;
+    const double sBypass     = mSmoothBypass.Process(bypassTarget);
 
-      const sample outS = bypass ? inS : (sample)(proc * outAmp);
-      outputs[c][s] = outS;
+    const double sCompThresh = mSmoothCompThresh.Process(compThresh);
+    const double sCompRatio  = mSmoothCompRatio.Process(compRatio);
+    const double sCompGainDB = mSmoothCompGain.Process(compGainDB);
+    const double sCompMix    = mSmoothCompMix.Process(compMix);
+    const double sWidth      = mSmoothWidth.Process(widthPct);
 
-      const double d = (double)outS;
-      sumSquares += d * d;
-      ++sampleCount;
+    double dryL = static_cast<double>(inputs[0][s]);
+    double dryR = (nChans >= 2) ? static_cast<double>(inputs[1][s]) : dryL;
+
+    double procL = dryL;
+    double procR = dryR;
+
+    // width=0: fold to mono before the compressor so both GR bars track the same signal
+    if (sWidth < 0.001 && nChans >= 2) {
+      const double monoSig = 0.5 * (procL + procR);
+      procL = monoSig;
+      procR = monoSig;
     }
+
+    // --- Compressor ---
+    if (!compBypass)
+    {
+      const double absL = std::fabs(procL);
+      mCompEnv[0] = absL + (absL > mCompEnv[0] ? compAttackCoeff : compReleaseCoeff) * (mCompEnv[0] - absL);
+
+      const double absR = std::fabs(procR);
+      mCompEnv[1] = absR + (absR > mCompEnv[1] ? compAttackCoeff : compReleaseCoeff) * (mCompEnv[1] - absR);
+
+      const double grL = ComputeGR(mCompEnv[0], sCompThresh, sCompRatio);
+      const double grR = ComputeGR(mCompEnv[1], sCompThresh, sCompRatio);
+
+      const double gainL = std::exp((sCompGainDB - grL) * kLn10Over20);
+      const double gainR = std::exp((sCompGainDB - grR) * kLn10Over20);
+
+      procL = procL + sCompMix * (procL * gainL - procL);
+      procR = procR + sCompMix * (procR * gainR - procR);
+
+      lastGainReductionL  = EffectiveGR(grL, sCompMix);
+      lastGainReductionR  = EffectiveGR(grR, sCompMix);
+    }
+
+    // master intensity blends from the compressor output so the comp is always active regardless of the knob
+    const double compL = procL;
+    const double compR = procR;
+
+    // --- Tremolo (R channel +30° phase offset for stereo shimmer) ---
+    {
+      mTremPhase += sTremRate * invSr;
+      if (mTremPhase >= 1.0) mTremPhase -= 1.0;
+
+      const double tremTarget = tremBypass ? 0.0 : 1.0;
+      if (mTremBypassRamp < tremTarget)
+        mTremBypassRamp = std::min(tremTarget, mTremBypassRamp + bypassRampRate);
+      else
+        mTremBypassRamp = std::max(tremTarget, mTremBypassRamp - bypassRampRate);
+
+      if (mTremBypassRamp > 0.0)
+      {
+        constexpr double kTremStereoOffset = 0.083; // ~30° stereo spread
+        double tremLFO_L = std::sin(mTremPhase * kTwoPi);
+        double tremLFO_R = std::sin((mTremPhase + kTremStereoOffset) * kTwoPi);
+        double tremL = procL * (1.0 - sTremDepth * 0.5 * (1.0 - tremLFO_L));
+        double tremR = procR * (1.0 - sTremDepth * 0.5 * (1.0 - tremLFO_R));
+        procL += mTremBypassRamp * (tremL - procL);
+        procR += mTremBypassRamp * (tremR - procR);
+      }
+    }
+
+    // --- Pan Motion (constant-power panning LFO) ---
+    {
+      mPanPhase += sPanRate * invSr;
+      if (mPanPhase >= 1.0) mPanPhase -= 1.0;
+
+      const double panTarget = (panBypass || nChans < 2) ? 0.0 : 1.0;
+      if (mPanBypassRamp < panTarget)
+        mPanBypassRamp = std::min(panTarget, mPanBypassRamp + bypassRampRate);
+      else
+        mPanBypassRamp = std::max(panTarget, mPanBypassRamp - bypassRampRate);
+
+      if (mPanBypassRamp > 0.0 && nChans >= 2)
+      {
+        double panLFO = std::sin(mPanPhase * kTwoPi);
+        double panPos = panLFO * sPanDepth;                      // −1 … +1
+        double angle  = (1.0 + panPos) * 0.25 * kPi;          // 0 … π/2
+        double gainL  = std::cos(angle) * kSqrt2;             // constant-power
+        double gainR  = std::sin(angle) * kSqrt2;
+        double panL   = procL * gainL;
+        double panR   = procR * gainR;
+        procL += mPanBypassRamp * (panL - procL);
+        procR += mPanBypassRamp * (panR - procR);
+      }
+    }
+
+    // --- Pitch Drift (stereo chorus: L=sin, R=cos LFO for 90° spread) ---
+    {
+      mPitchDelayBuf[0][mPitchDelayWriteIdx] = procL;
+      if (nChans >= 2)
+        mPitchDelayBuf[1][mPitchDelayWriteIdx] = procR;
+
+      mPitchPhase += sPitchRate * invSr;
+      if (mPitchPhase >= 1.0) mPitchPhase -= 1.0;
+
+      const double pitchTarget = pitchBypass ? 0.0 : 1.0;
+      if (mPitchBypassRamp < pitchTarget)
+        mPitchBypassRamp = std::min(pitchTarget, mPitchBypassRamp + bypassRampRate);
+      else
+        mPitchBypassRamp = std::max(pitchTarget, mPitchBypassRamp - bypassRampRate);
+
+      if (mPitchBypassRamp > 0.0)
+      {
+        double pitchLFO_L = std::sin(mPitchPhase * kTwoPi);
+        double pitchLFO_R = std::cos(mPitchPhase * kTwoPi);
+
+        double centerDelay  = kPitchCenterDelayMs * 0.001 * sr;
+        double modExcursion = kPitchModDepthMs * 0.001 * sr * sPitchDepth;
+
+        auto clampDelay = [](double d, int bufSize) {
+          if (d < 1.0) d = 1.0;
+          if (d > static_cast<double>(bufSize - 2)) d = static_cast<double>(bufSize - 2);
+          return d;
+        };
+
+        double delayL  = clampDelay(centerDelay + pitchLFO_L * modExcursion, kPitchDelayBufSize);
+        double delayR  = clampDelay(centerDelay + pitchLFO_R * modExcursion, kPitchDelayBufSize);
+        double pitchL  = DelayRead(mPitchDelayBuf[0], kPitchDelayBufSize, mPitchDelayWriteIdx, delayL);
+        double pitchR  = (nChans >= 2)
+                         ? DelayRead(mPitchDelayBuf[1], kPitchDelayBufSize, mPitchDelayWriteIdx, delayR)
+                         : pitchL;
+        procL += mPitchBypassRamp * (pitchL - procL);
+        procR += mPitchBypassRamp * (pitchR - procR);
+      }
+
+      mPitchDelayWriteIdx = (mPitchDelayWriteIdx + 1) % kPitchDelayBufSize;
+    }
+
+    // --- Phaser (6-stage allpass + feedback, stereo 90° LFO) ---
+    {
+      mPhaserPhase += sPhaserRate * invSr;
+      if (mPhaserPhase >= 1.0) mPhaserPhase -= 1.0;
+
+      const double phaserTarget = phaserBypass ? 0.0 : 1.0;
+      if (mPhaserBypassRamp < phaserTarget)
+        mPhaserBypassRamp = std::min(phaserTarget, mPhaserBypassRamp + bypassRampRate);
+      else
+        mPhaserBypassRamp = std::max(phaserTarget, mPhaserBypassRamp - bypassRampRate);
+
+      // always run the allpass chain even when bypassed — keeps state warm so there's no pop on re-enable
+      if (mPhaserBypassRamp > 0.0 || phaserTarget > 0.0)
+      {
+        constexpr double kPhaserFeedback = 0.45;
+
+        double sweepNormL = 0.5 + 0.5 * std::sin(mPhaserPhase * kTwoPi); // L: sin
+        double sweepNormR = 0.5 + 0.5 * std::cos(mPhaserPhase * kTwoPi); // R: cos (90° offset)
+
+        double freqL    = kPhaserMinFreq * std::exp(sweepNormL * phaserFreqRatioLog);
+        double freqR    = kPhaserMinFreq * std::exp(sweepNormR * phaserFreqRatioLog);
+        double apCoeffL = AllpassCoeff(freqL, sr);
+        double apCoeffR = AllpassCoeff(freqR, sr);
+
+        double apInL  = procL + kPhaserFeedback * mPhaserFeedbackL;
+        double apOutL = apInL;
+        for (int st = 0; st < 6; ++st)
+          apOutL = AllpassProcess(apOutL, apCoeffL, mAllpassState[0][st]);
+        mPhaserFeedbackL = apOutL;
+
+        double apOutR;
+        if (nChans >= 2)
+        {
+          double apInR = procR + kPhaserFeedback * mPhaserFeedbackR;
+          apOutR = apInR;
+          for (int st = 0; st < 6; ++st)
+            apOutR = AllpassProcess(apOutR, apCoeffR, mAllpassState[1][st]);
+          mPhaserFeedbackR = apOutR;
+        }
+        else
+        {
+          apOutR = apOutL;
+        }
+
+        double phasL = procL + sPhaserDepth * (apOutL - procL);
+        double phasR = procR + sPhaserDepth * (apOutR - procR);
+        procL += mPhaserBypassRamp * (phasL - procL);
+        procR += mPhaserBypassRamp * (phasR - procR);
+      }
+    }
+
+    // --- Master Intensity (blend: comp output → fully modulated) ---
+    double wetL = procL;
+    double wetR = procR;
+    procL = compL + sMasterInt * (wetL - compL);
+    procR = compR + sMasterInt * (wetR - compR);
+
+    procL *= sOutAmp;
+    procR *= sOutAmp;
+
+    // --- Stereo Width (M/S) ---
+    if (nChans >= 2)
+    {
+      double mid  = 0.5 * (procL + procR);
+      double side = 0.5 * (procL - procR);
+      side *= sWidth / 100.0; // 0=mono, 1=normal, 2=extra wide
+      procL = mid + side;
+      procR = mid - side;
+    }
+
+    // --- Global bypass crossfade ---
+    double outL = procL * (1.0 - sBypass) + dryL * sBypass;
+    double outR = procR * (1.0 - sBypass) + dryR * sBypass;
+
+    outputs[0][s] = static_cast<sample>(outL);
+    if (nChans >= 2)
+      outputs[1][s] = static_cast<sample>(outR);
+
+    double absL = std::fabs(outL);
+    double absR = std::fabs(outR);
+    if (absL > peakL) peakL = absL;
+    if (absR > peakR) peakR = absR;
   }
 
-  if (sampleCount > 0)
+  // output metering: peak per block with smoothing (40 ms attack / 300 ms release)
   {
-    if (sumSquares <= 0.0)
-      mOutputLevelDB = 0.0;
-    else
-    {
-      const double rms = std::sqrt(sumSquares / (double)sampleCount);
-      mOutputLevelDB = 20.0 * std::log10(rms);
-    }
+    double rawDBL = (peakL > 1e-10) ? 20.0 * std::log10(peakL) : -100.0;
+    double rawDBR = (peakR > 1e-10) ? 20.0 * std::log10(peakR) : -100.0;
+
+    // raise per-sample coeff to nFrames to get the right block-level smoothing
+    constexpr double kMeterAttackMs  = 40.0;
+    constexpr double kMeterReleaseMs = 300.0;
+    double attSample = std::exp(-1.0 / (kMeterAttackMs  * 0.001 * sr));
+    double relSample = std::exp(-1.0 / (kMeterReleaseMs * 0.001 * sr));
+    double attC = std::pow(attSample, static_cast<double>(nFrames));
+    double relC = std::pow(relSample, static_cast<double>(nFrames));
+
+    double cL = (rawDBL > mOutputSmoothedL) ? attC : relC;
+    mOutputSmoothedL = rawDBL + cL * (mOutputSmoothedL - rawDBL);
+    // don't snap mOutputSmoothedL here — if you do, it resets to -100 every block
+    // while trying to rise, so the meter stays dead after stop/start. clamp only what we report.
+    mOutputLevelDBL = (mOutputSmoothedL < -54.0) ? -100.0 : mOutputSmoothedL;
+
+    double cR = (rawDBR > mOutputSmoothedR) ? attC : relC;
+    mOutputSmoothedR = rawDBR + cR * (mOutputSmoothedR - rawDBR);
+    mOutputLevelDBR = (mOutputSmoothedR < -54.0) ? -100.0 : mOutputSmoothedR;
+    mMeterUpdateCount++;
   }
+
+  // push GR values to the UI — last sample of the block is close enough for a visual meter
+  mGainReductionL = lastGainReductionL;
+  mGainReductionR = lastGainReductionR;
+  mGRUpdateCount++;
 }
 #endif
