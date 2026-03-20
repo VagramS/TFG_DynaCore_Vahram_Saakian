@@ -1,128 +1,76 @@
-# DynaCore
+# TFG — DynaCore
 
-Multi-effect audio plugin built with [iPlug2](https://github.com/iPlug2/iPlug2).
-
-> TFG — Universidad Complutense de Madrid (UCM)
-> Author: Vahram Saakian | vahramsa@ucm.es
-
----
-
-## What it does
-
-DynaCore chains five processing modules in a fixed order:
-
-| Module | What it does |
-|--------|-------------|
-| **Compressor** | Peak compressor with parallel mix, adjustable threshold, ratio, attack/release and makeup gain |
-| **Tremolo** | Amplitude LFO, ~30° phase offset between L and R for stereo shimmer |
-| **Pan Motion** | Constant-power auto-pan LFO |
-| **Pitch Drift** | Short modulated delay (chorus style), 90° L/R spread |
-| **Phaser** | 6-stage allpass chain with feedback and log-sweep |
-
-Plus:
-- **Stereo Width** — M/S processing (0% = mono, 100% = normal, 200% = extra wide)
-- **Master Intensity** — blends all modulation on top of the compressed signal
-- **Output Level** — final gain
-- **Global Bypass** — clean crossfade to dry
+> **Trabajo Fin de Grado** — Universidad Complutense de Madrid (UCM)
+> Grado en Ingeniería Informática · 2025-2026
+> Author: **Vahram Saakian** · vahramsa@ucm.es
+> Director: Miguel Gómez-Zamalloa Gil, Jaime Sánchez Hernández
 
 ---
 
-## Signal chain
+## About
 
-```
-Input → [Mono Fold] → Compressor → Tremolo → Pan Motion → Pitch Drift
-      → Phaser → Master Intensity → Output Gain → Stereo Width
-      → Global Bypass → Output
-```
+**DynaCore** is a multi-effect audio plugin developed as a TFG at UCM.
+It runs compression, modulation and stereo processing in a fixed signal chain, with a custom UI, 13 factory presets, and per-sample smoothing on all parameters.
 
----
+Built with [iPlug2](https://github.com/iPlug2/iPlug2) in C++. Distributed as **VST3** and **AU** for macOS, and **VST3** for Windows.
 
-## Presets
-
-13 factory presets split into four groups:
-
-| Group | Presets |
-|-------|---------|
-| **Vocals** (4) | Cold Whisper 14, Blade Mono Focus, Spectral Glide, Ritual Double |
-| **Pads** (4) | Cryostasis Pad, Nocturne Pulse, Moon Tides, Glass Cathedral |
-| **Drums** (3) | Iron March, Ghost Hats, Submerge Kit |
-| **Experimental** (2) | Event Horizon, Time Shear |
-
-Presets are stored as plain C structs, no iPlug2 preset machinery used.
+→ **[Plugin documentation, build & install guide](iPlug2/Examples/DynaCore/README.md)**
 
 ---
 
-## Formats
+## Downloads
 
-| Format | Install path |
-|--------|--------------|
-| **VST3** | `/Library/Audio/Plug-Ins/VST3/DynaCore.vst3` |
-| **AUv2** | `/Library/Audio/Plug-Ins/Components/DynaCore.component` |
+Pre-built installers are available on the [Releases](https://github.com/VagramS/TFG_DynaCore_Vahram_Saakian/releases) page:
+
+| Platform | File | Formats |
+|----------|------|---------|
+| **macOS** | `DynaCore-1.0.0-macOS.pkg` | VST3 + AU |
+| **Windows** | `DynaCore-1.0.0-Windows-Setup.exe` | VST3 |
+
+The Windows installer is built automatically by GitHub Actions on every tagged release.
 
 ---
 
 ## UI Design
 
-Designed in Figma first, then implemented with iPlug2/IGraphics:
+Designed in Figma before any code was written:
 
 🎨 [TFG — DynaCore Design — Vahram Saakian](https://www.figma.com/design/Em3jdV60MSLZxlxcE9jMQJ/TFG--DynaCore-Design--Vahram-Saakian?node-id=0-1)
 
 ---
 
-## Project structure
-
-The repo root is the iPlug2 SDK folder. The actual plugin lives under `iPlug2/Examples/DynaCore/`:
+## Repository structure
 
 ```
-TFG_DynaCore_Vahram_Saakian/          ← repo root
-├── iPlug2/                           ← iPlug2 SDK
-│   ├── Build/                        ← prebuilt SDK libs
-│   ├── Dependencies/
+TFG_DynaCore_Vahram_Saakian/          ← repo root (iPlug2 SDK)
+├── .github/
+│   └── workflows/
+│       └── build-windows.yml         ← CI: builds Windows VST3 + installer
+├── iPlug2/
+│   ├── Build/                        ← prebuilt SDK libs (macOS)
+│   ├── Dependencies/                 ← VST3 SDK, IGraphics libs, etc.
 │   ├── Examples/
-│   │   └── DynaCore/                 ← plugin source (this is what matters)
+│   │   └── DynaCore/                 ← plugin source ← start here
+│   │       ├── DynaCore.cpp          ← all DSP, UI, presets (~2700 lines)
 │   │       ├── DynaCore.h            ← class declaration + param enum
-│   │       ├── DynaCore.cpp          ← all DSP, UI controls, presets
 │   │       ├── config.h              ← plugin metadata
-│   │       ├── DynaCore.xcworkspace  ← open this in Xcode
 │   │       ├── projects/
 │   │       │   ├── DynaCore-macOS.xcodeproj
-│   │       │   ├── DynaCore.icns
-│   │       │   ├── img/              ← UI assets (copied here by Xcode)
+│   │       │   ├── img/              ← UI background images
 │   │       │   └── fonts/
 │   │       ├── resources/
-│   │       │   ├── img/              ← UI bitmaps (@1x/@2x/@3x)
+│   │       │   ├── img/              ← UI bitmaps (@1x / @2x / @3x)
 │   │       │   ├── fonts/            ← Inter typeface
 │   │       │   └── *.plist
 │   │       └── installer/
-│   │           ├── makedist-mac.sh   ← builds .pkg installer
-│   │           └── DynaCore-win.iss  ← Windows (Inno Setup)
-│   ├── IGraphics/
-│   ├── IPlug/
-│   └── Scripts/
+│   │           ├── makedist-mac.sh   ← builds macOS .pkg
+│   │           └── DynaCore-win.iss  ← Windows installer (Inno Setup)
+│   ├── IGraphics/                    ← rendering engine
+│   ├── IPlug/                        ← plugin API abstraction
+│   └── Scripts/                      ← iPlug2 build utilities
+├── .gitignore
 ├── LICENSE
-└── README.md
-```
-
----
-
-## Build
-
-Requirements: macOS 12+, Xcode 14+, iPlug2 is already in the repo so no extra install needed.
-
-```bash
-git clone https://github.com/VagramS/TFG_DynaCore_Vahram_Saakian.git
-cd TFG_DynaCore_Vahram_Saakian
-open iPlug2/Examples/DynaCore/DynaCore.xcworkspace
-```
-
-Pick the **VST3** or **AUv2** scheme, set configuration to **Release**, hit build.
-
-**Or build everything + package installer in one go:**
-
-```bash
-cd iPlug2/Examples/DynaCore
-bash installer/makedist-mac.sh
-# → installer/DynaCore-1.0.0-macOS.pkg
+└── README.md                         ← this file
 ```
 
 ---

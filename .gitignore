@@ -15,6 +15,8 @@ build.db
 
 # Installer staging (generated, not source)
 iPlug2/Examples/DynaCore/installer/_staging/
+iPlug2/Examples/DynaCore/installer/win-artefacts/
+iPlug2/Examples/DynaCore/build-win/
 
 # Windows-specific
 Thumbs.db

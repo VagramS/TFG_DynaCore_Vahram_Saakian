@@ -1,0 +1,116 @@
+name: Windows Installer
+
+# Triggers: manually via Actions tab, or automatically on version tags (e.g. v1.0.0)
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build VST3 + package installer
+    runs-on: windows-latest
+
+    steps:
+      # ------------------------------------------------------------------ #
+      # 1. Checkout the full repository
+      # ------------------------------------------------------------------ #
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------ #
+      # 2. Add MSBuild (VS 2022) to PATH
+      # ------------------------------------------------------------------ #
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # ------------------------------------------------------------------ #
+      # 3. Download iPlug2 prebuilt Windows libraries
+      #    The zip contains  win/  and  src/  which must land under
+      #    iPlug2/Dependencies/Build/
+      # ------------------------------------------------------------------ #
+      - name: Download iPlug2 Windows prebuilt libs
+        shell: pwsh
+        run: |
+          $url = "https://github.com/iPlug2/iPlug2/releases/download/v1.0.0-beta/IPLUG2_DEPS_WIN.zip"
+          Write-Host "Downloading $url ..."
+          Invoke-WebRequest -Uri $url -OutFile "IPLUG2_DEPS_WIN.zip"
+
+          Expand-Archive -Path "IPLUG2_DEPS_WIN.zip" -DestinationPath "deps_tmp" -Force
+
+          # The zip unpacks into a single subfolder (IPLUG2_DEPS_WIN/)
+          $inner = Get-ChildItem "deps_tmp" -Directory | Select-Object -First 1 -ExpandProperty FullName
+          Write-Host "Extracted to: $inner"
+
+          $dest = "iPlug2\Dependencies\Build"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Recurse -Force "$inner\*" "$dest\"
+
+          Remove-Item -Recurse -Force "deps_tmp", "IPLUG2_DEPS_WIN.zip"
+          Write-Host "iPlug2 libs ready at $dest"
+
+      # ------------------------------------------------------------------ #
+      # 4. Build DynaCore VST3 (Release | x64)
+      #    SolutionDir = iPlug2/Examples/DynaCore/
+      #    Output DLL  = build-win\vst3\x64\Release\DynaCore.vst3
+      #    VST3 bundle = build-win\DynaCore.vst3\   (created by postbuild)
+      # ------------------------------------------------------------------ #
+      - name: Build DynaCore VST3
+        shell: cmd
+        run: |
+          msbuild "iPlug2\Examples\DynaCore\DynaCore.sln" ^
+            /p:Configuration=Release ^
+            /p:Platform=x64 ^
+            /t:DynaCore-vst3 ^
+            /m ^
+            /v:minimal
+
+      # ------------------------------------------------------------------ #
+      # 5. Copy VST3 bundle into installer staging folder
+      #    .iss expects:  installer\win-artefacts\DynaCore.vst3\*
+      # ------------------------------------------------------------------ #
+      - name: Stage VST3 bundle for installer
+        shell: pwsh
+        run: |
+          $src = "iPlug2\Examples\DynaCore\build-win\DynaCore.vst3"
+          $dst = "iPlug2\Examples\DynaCore\installer\win-artefacts\DynaCore.vst3"
+
+          if (-not (Test-Path $src)) {
+            Write-Error "VST3 bundle not found at $src — build probably failed"
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          Copy-Item -Recurse -Force "$src\*" "$dst\"
+          Write-Host "Bundle staged at $dst"
+
+      # ------------------------------------------------------------------ #
+      # 6. Package installer with Inno Setup 6
+      #    Output: installer\DynaCore-1.0.0-Windows-Setup.exe
+      # ------------------------------------------------------------------ #
+      - name: Build installer (Inno Setup)
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ^
+            "iPlug2\Examples\DynaCore\installer\DynaCore-win.iss"
+
+      # ------------------------------------------------------------------ #
+      # 7. Upload installer as workflow artifact (always available)
+      # ------------------------------------------------------------------ #
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DynaCore-1.0.0-Windows-Setup
+          path: iPlug2/Examples/DynaCore/installer/DynaCore-1.0.0-Windows-Setup.exe
+          if-no-files-found: error
+
+      # ------------------------------------------------------------------ #
+      # 8. Attach installer to GitHub Release (only when triggered by a tag)
+      # ------------------------------------------------------------------ #
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: iPlug2/Examples/DynaCore/installer/DynaCore-1.0.0-Windows-Setup.exe
+          fail_on_unmatched_files: true
