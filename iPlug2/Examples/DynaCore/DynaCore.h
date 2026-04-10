@@ -125,7 +125,7 @@ private:
   iplug::LogParamSmooth<double> mSmoothCompRatio   {5.0, 2.0};
   iplug::LogParamSmooth<double> mSmoothCompGain    {5.0, 0.0};
   iplug::LogParamSmooth<double> mSmoothCompMix     {5.0, 1.0};
-  iplug::LogParamSmooth<double> mSmoothWidth       {5.0, 100.0};
+  iplug::LogParamSmooth<double> mSmoothWidth       {5.0, 1.0};
 
   // LFO phases, normalised 0–1
   double mTremPhase   = 0.0;

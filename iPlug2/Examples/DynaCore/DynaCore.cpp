@@ -2225,21 +2225,12 @@ namespace
 {
   constexpr double kPi    = 3.14159265358979323846;
   constexpr double kTwoPi = 6.283185307179586476925286766559;
-  constexpr double kSqrt2 = 1.4142135623730951;         ///< √2 for constant-power panning
+  constexpr double kSqrt2 = 1.4142135623730951;  // √2, used for constant-power panning
 
-  /// exp(x * kLn10Over20) ≡ pow(10, x/20) — avoids expensive pow() per sample.
+  // shortcut: exp(x * kLn10Over20) is the same as pow(10, x/20) but faster
   static const double kLn10Over20 = std::log(10.0) / 20.0;
 
-  /**
-   * @brief First-order allpass filter in lattice form.
-   *
-   * Implements:  v[n] = x[n] − a·v[n−1]  ;  y[n] = a·v[n] + v[n−1]
-   *
-   * @param input  Current input sample.
-   * @param coeff  Allpass coefficient (from AllpassCoeff).
-   * @param state  Filter state variable (updated in-place).
-   * @return Filtered output sample.
-   */
+  // first-order allpass filter (lattice form) — updates state in-place
   inline double AllpassProcess(double input, double coeff, double& state)
   {
     const double v = input - coeff * state;
@@ -2248,32 +2239,14 @@ namespace
     return out;
   }
 
-  /**
-   * @brief Compute first-order allpass coefficient for a given cutoff.
-   *
-   * Formula: a = (tan(π·fc/fs) − 1) / (tan(π·fc/fs) + 1)
-   *
-   * @param fc         Cutoff frequency in Hz.
-   * @param sampleRate Host sample rate in Hz.
-   * @return Allpass coefficient in (−1, 1).
-   */
+  // calculates allpass coefficient for a given cutoff frequency
   inline double AllpassCoeff(double fc, double sampleRate)
   {
     const double t = std::tan(kPi * fc / sampleRate);
     return (t - 1.0) / (t + 1.0);
   }
 
-  /**
-   * @brief Read from a circular delay buffer with fractional-sample interpolation.
-   *
-   * Uses linear interpolation between adjacent samples for sub-sample accuracy.
-   *
-   * @param buf          Pointer to the circular buffer.
-   * @param bufSize      Length of the buffer in samples.
-   * @param writeIdx     Current write position.
-   * @param delaySamples Desired delay in fractional samples.
-   * @return Interpolated output sample.
-   */
+  // reads from a circular delay buffer with linear interpolation between samples
   inline double DelayRead(const double* buf, int bufSize, int writeIdx, double delaySamples)
   {
     double readPos = static_cast<double>(writeIdx) - delaySamples;
@@ -2288,17 +2261,7 @@ namespace
     return buf[idx0] + frac * (buf[idx1] - buf[idx0]);
   }
 
-  /**
-   * @brief Compute gain reduction in dB from a peak-envelope value.
-   *
-   * Used inside the compressor section of ProcessBlock.  If the envelope
-   * exceeds the threshold, the excess is reduced by (1 − 1/ratio).
-   *
-   * @param env        Peak envelope level (linear amplitude).
-   * @param threshDB   Compressor threshold in dB.
-   * @param ratio      Compressor ratio (≥ 1.0).
-   * @return Gain reduction in dB (≥ 0).
-   */
+  // computes how much the compressor is reducing the signal (in dB)
   inline double ComputeGR(double env, double threshDB, double ratio)
   {
     const double envDB = (env > 1e-10) ? 20.0 * std::log10(env) : -200.0;
@@ -2307,15 +2270,7 @@ namespace
     return 0.0;
   }
 
-  /**
-   * @brief Compute effective gain reduction accounting for parallel mix.
-   *
-   * effectiveGR = −20·log10((1−mix) + mix·10^(−rawGR/20))
-   *
-   * @param rawGR     Raw GR in dB from the compressor.
-   * @param compMix   Parallel mix fraction (0.0 … 1.0).
-   * @return Effective GR in dB (≥ 0).
-   */
+  // same as ComputeGR but accounts for the parallel mix knob
   inline double EffectiveGR(double rawGR, double compMix)
   {
     if (rawGR <= 0.0) return 0.0;
@@ -2324,7 +2279,7 @@ namespace
   }
 } // namespace
 
-/// @see DynaCore::OnReset (DynaCore.h)
+// resets all DSP state when sample rate changes or transport is reset
 void DynaCore::OnReset()
 {
   mSampleRate = GetSampleRate();
@@ -2359,7 +2314,7 @@ void DynaCore::OnReset()
   mOutputSmoothedL = mOutputSmoothedR = -100.0;
 }
 
-/// @see DynaCore::ProcessBlock (DynaCore.h)
+// main DSP loop — processes one audio buffer (called by the host)
 void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
   // grab all params once per block, then smooth per-sample inside the loop
