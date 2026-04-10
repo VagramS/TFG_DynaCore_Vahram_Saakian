@@ -1410,6 +1410,11 @@ public:
 
   void OnMouseDown(float x, float y, const IMouseMod& mod) override
   {
+    // Sync control value with actual param value before drag starts,
+    // so the knob doesn't jump after a preset change
+    if (const IParam* p = GetParam())
+      SetValue(p->GetNormalized());
+
     IBKnobRotaterControl::OnMouseDown(x, y, mod);
     if (auto* ui = GetUI())
       ui->SetMouseCursor(ECursor::HAND);
@@ -1615,8 +1620,7 @@ public:
     }
 
     IRECT textRect(mRECT.L + 5.5f, mRECT.B - 46.f, mRECT.R + 9.5f, mRECT.B - 28.f);
-    IText text(14.f, COLOR_WHITE, "Inter-Semi-Bold", EAlign::Center, EVAlign::Middle);
-    g.DrawText(text, buf, textRect);
+    g.DrawText(mDbText, buf, textRect);
 
     SetDirty(false);
   }
@@ -1626,6 +1630,7 @@ private:
   float mVisualL = 0.f;
   float mVisualR = 0.f;
   double mTextDB = -100.0; // smoothed dB for text display
+  const IText mDbText{14.f, COLOR_WHITE, "Inter-Semi-Bold", EAlign::Center, EVAlign::Middle};
   uint64_t mLastUpdateCount = 0;
   int mStaleFrames = 100;
 };
@@ -1754,15 +1759,13 @@ public:
       std::snprintf(buf, sizeof(buf), "%.0f%%", percent);
     }
 
-    IColor color(255, 53, 66, 80);
-    IText text(17.f, color, "Inter-Regular", EAlign::Center, EVAlign::Middle);
-
-    g.DrawText(text, buf, mRECT);
+    g.DrawText(mValueText, buf, mRECT);
     SetDirty(false);
   }
 
 private:
   int mParamIdx = -1;
+  const IText mValueText{17.f, IColor(255, 53, 66, 80), "Inter-Regular", EAlign::Center, EVAlign::Middle};
 };
 
 
@@ -1866,13 +1869,12 @@ public:
     const bool hasPreset = (gSelectedPresetGlobal >= 0);
     const char* text = hasPreset ? gSelectedPresetName.c_str() : "SELECT PRESET";
 
-    // Color ABABAB, font size 10, using Inter-Medium (loaded in layout)
-    IColor color(255, 171, 171, 171);
-    IText  itext(10.f, color, "Inter-Medium", EAlign::Near, EVAlign::Middle);
-
-    g.DrawText(itext, text, mRECT);
+    g.DrawText(mPresetText, text, mRECT);
     SetDirty(false);
   }
+
+private:
+  const IText mPresetText{10.f, IColor(255, 171, 171, 171), "Inter-Medium", EAlign::Near, EVAlign::Middle};
 };
 
 DynaCore::DynaCore(const InstanceInfo& info)
@@ -2392,7 +2394,7 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   const double compReleaseMs = GetParam(kCompRelease)->Value();  // ms
 
   const double masterInt = GetParam(kMasterIntensity)->Value() / 100.0;
-  const double widthPct  = GetParam(kWidth)->Value(); // 0-200%
+  const double widthNorm = GetParam(kWidth)->Value() / 100.0; // 0-200% → 0.0-2.0
 
   const double sr    = mSampleRate;
   const double invSr = 1.0 / sr;
@@ -2439,7 +2441,7 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
     const double sCompRatio  = mSmoothCompRatio.Process(compRatio);
     const double sCompGainDB = mSmoothCompGain.Process(compGainDB);
     const double sCompMix    = mSmoothCompMix.Process(compMix);
-    const double sWidth      = mSmoothWidth.Process(widthPct);
+    const double sWidth      = mSmoothWidth.Process(widthNorm);
 
     double dryL = static_cast<double>(inputs[0][s]);
     double dryR = (nChans >= 2) ? static_cast<double>(inputs[1][s]) : dryL;
@@ -2635,7 +2637,7 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
     {
       double mid  = 0.5 * (procL + procR);
       double side = 0.5 * (procL - procR);
-      side *= sWidth / 100.0; // 0=mono, 1=normal, 2=extra wide
+      side *= sWidth; // 0=mono, 1=normal, 2=extra wide
       procL = mid + side;
       procR = mid - side;
     }
