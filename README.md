@@ -13,9 +13,9 @@ DynaCore chains five processing modules in a fixed order:
 
 | Module | What it does |
 |--------|-------------|
-| **Compressor** | Peak compressor with parallel mix, adjustable threshold, ratio, attack/release and makeup gain |
-| **Tremolo** | Amplitude LFO, ~30° phase offset between L and R for stereo shimmer |
-| **Pan Motion** | Constant-power auto-pan LFO |
+| **Compressor** | Peak compressor with parallel mix, adjustable threshold, ratio, attack/release, makeup gain and auto-gain mode (tracks GR in real time) |
+| **Tremolo** | Amplitude LFO, ~30° phase offset between L and R for stereo shimmer. Switchable sine/square waveform |
+| **Pan Motion** | Constant-power auto-pan LFO. Switchable sine/square waveform |
 | **Pitch Drift** | Short modulated delay (chorus style), 90° L/R spread |
 | **Phaser** | 6-stage allpass chain with feedback and log-sweep |
 
@@ -81,7 +81,9 @@ TFG_DynaCore_Vahram_Saakian/          ← repo root
 │   ├── Examples/
 │   │   └── DynaCore/                 ← plugin source (this is what matters)
 │   │       ├── DynaCore.h            ← class declaration + param enum
-│   │       ├── DynaCore.cpp          ← all DSP, UI controls, presets
+│   │       ├── DynaCore.cpp          ← DSP + constructor + UI layout
+│   │       ├── DynaCoreControls.h    ← all custom UI controls
+│   │       ├── DynaCorePresets.h     ← preset system + default values
 │   │       ├── config.h              ← plugin metadata
 │   │       ├── DynaCore.xcworkspace  ← open this in Xcode
 │   │       ├── projects/

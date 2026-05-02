@@ -184,6 +184,8 @@
 		4F35DEAC207E5C5A00867D8F /* IPlugPluginBase.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.h; name = IPlugPluginBase.h; path = ../../../IPlug/IPlugPluginBase.h; sourceTree = "<group>"; tabWidth = 2; };
 		4F3862ED2014BBEC0009F402 /* DynaCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DynaCore.cpp; path = ../DynaCore.cpp; sourceTree = "<group>"; };
 		4F3862EE2014BBEC0009F402 /* DynaCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DynaCore.h; path = ../DynaCore.h; sourceTree = "<group>"; };
+		566AD56F014A35DDDABF92AD /* DynaCorePresets.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DynaCorePresets.h; path = ../DynaCorePresets.h; sourceTree = "<group>"; };
+		186BF445BA491AA9CED56222 /* DynaCoreControls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DynaCoreControls.h; path = ../DynaCoreControls.h; sourceTree = "<group>"; };
 		4F3862FF2014BCC70009F402 /* scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scripts; path = ../scripts; sourceTree = "<group>"; };
 		4F3D2B4520212D4E00842FF4 /* wdl_base64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = wdl_base64.h; path = ../../../WDL/wdl_base64.h; sourceTree = "<group>"; };
 		4F3E693A1409747300C4D749 /* DynaCore-VST3-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "DynaCore-VST3-Info.plist"; path = "../resources/DynaCore-VST3-Info.plist"; sourceTree = "<group>"; };
@@ -490,6 +492,8 @@
 			children = (
 				52FBBED30D0CF143001C8B8A /* config.h */,
 				4F3862EE2014BBEC0009F402 /* DynaCore.h */,
+				566AD56F014A35DDDABF92AD /* DynaCorePresets.h */,
+				186BF445BA491AA9CED56222 /* DynaCoreControls.h */,
 				4F3862ED2014BBEC0009F402 /* DynaCore.cpp */,
 				4F9313232315CA1100DB2383 /* README.md */,
 				089C167CFE841241C02AAC07 /* Resources */,
