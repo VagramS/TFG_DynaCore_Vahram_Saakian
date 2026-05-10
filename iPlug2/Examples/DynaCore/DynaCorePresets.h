@@ -70,6 +70,86 @@ static inline double ApplyRateDeadZone(int idx, double hz)
 }
 
 // ============================================================
+//  BPM-synced rate divisions
+//  Knob position picks one of these note values; Hz comes from
+//  host tempo: freq = (bpm / 60) * freqMultiplier.
+// ============================================================
+
+struct SyncDivision
+{
+  const char* label;
+  double      freqMultiplier;  // freq relative to bpm/60 (quarter-note rate)
+};
+
+// sorted slowest -> fastest (so the knob sweeps from slow to fast)
+static constexpr SyncDivision kSyncDivisions[] =
+{
+  { "1/1",   0.25 },          // whole note
+  { "1/2d",  1.0 / 3.0 },     // dotted half
+  { "1/2",   0.5 },           // half
+  { "1/4d",  2.0 / 3.0 },     // dotted quarter
+  { "1/2t",  0.75 },          // half triplet
+  { "1/4",   1.0 },           // quarter
+  { "1/8d",  4.0 / 3.0 },     // dotted eighth
+  { "1/4t",  1.5 },           // quarter triplet
+  { "1/8",   2.0 },           // eighth
+  { "1/16d", 8.0 / 3.0 },     // dotted sixteenth
+  { "1/8t",  3.0 },           // eighth triplet
+  { "1/16",  4.0 },           // sixteenth
+  { "1/16t", 6.0 },           // sixteenth triplet
+  { "1/32",  8.0 }            // thirty-second
+};
+
+static constexpr int kSyncDivCount =
+  sizeof(kSyncDivisions) / sizeof(kSyncDivisions[0]);
+
+// returns the matching sync param idx for a rate param, or -1 if none
+static inline int RateSyncParamIdxForRate(int rateIdx)
+{
+  switch (rateIdx)
+  {
+    case kTremRate:   return kTremRateSync;
+    case kPanRate:    return kPanRateSync;
+    case kPitchRate:  return kPitchRateSync;
+    case kPhaserRate: return kPhaserRateSync;
+    default:          return -1;
+  }
+}
+
+// knob position 0..1 -> nearest division index
+static inline int NormToSyncDivIdx(double norm)
+{
+  if (norm <= 0.0) return 0;
+  if (norm >= 1.0) return kSyncDivCount - 1;
+  return static_cast<int>(std::round(norm * (kSyncDivCount - 1)));
+}
+
+// division index -> normalized knob position
+static inline double SyncDivIdxToNorm(int idx)
+{
+  if (kSyncDivCount <= 1) return 0.0;
+  if (idx < 0) idx = 0;
+  if (idx > kSyncDivCount - 1) idx = kSyncDivCount - 1;
+  return static_cast<double>(idx) / static_cast<double>(kSyncDivCount - 1);
+}
+
+// Hz value for a division at the given tempo
+static inline double SyncDivFreqHz(double bpm, int idx)
+{
+  if (idx < 0) idx = 0;
+  if (idx > kSyncDivCount - 1) idx = kSyncDivCount - 1;
+  return (bpm / 60.0) * kSyncDivisions[idx].freqMultiplier;
+}
+
+// label for a division (e.g. "1/8d") — never returns null
+static inline const char* SyncDivLabel(int idx)
+{
+  if (idx < 0) idx = 0;
+  if (idx > kSyncDivCount - 1) idx = kSyncDivCount - 1;
+  return kSyncDivisions[idx].label;
+}
+
+// ============================================================
 //  Preset groups, names, and navigation
 // ============================================================
 
@@ -358,6 +438,12 @@ static void ApplyPresetToParams(IEditorDelegate* dlg, EPresetGroup g, int idx)
   dlg->SendParameterValueFromUI(kCompAutoGain, 0.0);  // manual gain mode
   dlg->SendParameterValueFromUI(kTremWaveform, 0.0);  // sine wave
   dlg->SendParameterValueFromUI(kPanWaveform,  0.0);  // sine wave
+
+  // presets store rates as Hz, so make sure all sync toggles start off
+  dlg->SendParameterValueFromUI(kTremRateSync,   0.0);
+  dlg->SendParameterValueFromUI(kPanRateSync,    0.0);
+  dlg->SendParameterValueFromUI(kPitchRateSync,  0.0);
+  dlg->SendParameterValueFromUI(kPhaserRateSync, 0.0);
 }
 
 // global preset state — shared between UI controls, only used on UI thread
@@ -403,7 +489,12 @@ namespace
 
     { kCompAutoGain,    0.0   },  // manual makeup gain
     { kTremWaveform,    0.0   },  // sine wave
-    { kPanWaveform,     0.0   }   // sine wave
+    { kPanWaveform,     0.0   },  // sine wave
+
+    { kTremRateSync,    0.0   },  // free Hz mode
+    { kPanRateSync,     0.0   },  // free Hz mode
+    { kPitchRateSync,   0.0   },  // free Hz mode
+    { kPhaserRateSync,  0.0   }   // free Hz mode
   };
 
   template <typename Setter>

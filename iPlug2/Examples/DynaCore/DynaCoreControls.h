@@ -98,9 +98,15 @@ static void AutoGateModulesFromParams(IEditorDelegate* dlg, int changedParamIdx)
     return 0.0;
   };
 
-  // check if rate is above the dead zone
+  // check if rate is above the dead zone (or sync mode is on, which always
+  // produces a non-zero rate)
   auto IsRateOn = [dlg](int rateIdx) -> bool
   {
+    const int syncIdx = RateSyncParamIdxForRate(rateIdx);
+    if (syncIdx >= 0)
+      if (IParam* sp = dlg->GetParam(syncIdx))
+        if (sp->Bool()) return true;  // sync mode always plays at some Hz
+
     if (IParam* p = dlg->GetParam(rateIdx))
     {
       const double hz = ApplyRateDeadZone(rateIdx, p->Value());
@@ -986,15 +992,55 @@ public:
   }
 
 private:
+  // returns true if this rate knob is currently in BPM-sync mode
+  bool IsInSyncMode() const
+  {
+    if (!IsRateParamIdx(mParamIdxLocal)) return false;
+    auto* dlg = const_cast<HoverKnobRotaterControl*>(this)->GetDelegate();
+    if (!dlg) return false;
+    const int syncIdx = RateSyncParamIdxForRate(mParamIdxLocal);
+    if (syncIdx < 0) return false;
+    if (IParam* sp = dlg->GetParam(syncIdx))
+      return sp->Bool();
+    return false;
+  }
+
   // runs after drag or scroll
   void AfterKnobChange()
   {
-    EnforceRateDeadZone();
+    if (IsInSyncMode())
+      EnforceRateSyncSnap();   // sync mode: snap to nearest division
+    else
+      EnforceRateDeadZone();   // free mode: snap to 0 below threshold
+
     if (auto* dlg = GetDelegate())
       AutoGateModulesFromParams(dlg, mParamIdxLocal);
     if (auto* ui = GetUI())
       ui->SetAllControlsDirty();
     SetDirty(true);
+  }
+
+  // snap rate knob to the nearest discrete sync division
+  void EnforceRateSyncSnap()
+  {
+    if (!IsRateParamIdx(mParamIdxLocal)) return;  // not a rate knob
+
+    auto* dlg = GetDelegate();
+    if (!dlg) return;
+
+    const double norm   = GetValue();                       // current 0..1
+    const int    divIdx = NormToSyncDivIdx(norm);           // pick nearest division
+    const double snap   = SyncDivIdxToNorm(divIdx);         // back to 0..1
+
+    if (std::fabs(snap - norm) < 1e-9)
+      return;  // already on a division, no change needed
+
+    SetValue(snap);                                       // update knob
+    dlg->SendParameterValueFromUI(mParamIdxLocal, snap);  // send to DAW
+
+    SetDirty(false);
+    if (auto* ui = GetUI())
+      ui->SetAllControlsDirty();  // update value label
   }
 
   // snap rate to 0 if it's below the dead zone threshold
@@ -1259,9 +1305,24 @@ public:
 
     if (IsRateParamIdx(mParamIdx))
     {
-      double hz = p->Value();
-      hz = ApplyRateDeadZone(mParamIdx, hz);         // snap to 0 if too low
-      std::snprintf(buf, sizeof(buf), "%.2fHz", hz);
+      // in sync mode the knob picks a musical division — show its label
+      bool syncOn = false;
+      const int syncIdx = RateSyncParamIdxForRate(mParamIdx);  // matching toggle
+      if (syncIdx >= 0)
+        if (IParam* sp = dlg->GetParam(syncIdx))
+          syncOn = sp->Bool();  // read the toggle state
+
+      if (syncOn)
+      {
+        const int divIdx = NormToSyncDivIdx(p->GetNormalized());      // pick division
+        std::snprintf(buf, sizeof(buf), "%s", SyncDivLabel(divIdx));  // e.g. "1/8d"
+      }
+      else
+      {
+        double hz = p->Value();
+        hz = ApplyRateDeadZone(mParamIdx, hz);         // snap to 0 if too low
+        std::snprintf(buf, sizeof(buf), "%.2fHz", hz);
+      }
     }
     else
     {
@@ -1489,6 +1550,84 @@ public:
 
 private:
   int mParamIdx = -1;
+};
+
+// Rate sync toggle — switches a rate knob between Hz and BPM-synced divisions
+// shows "Hz" when in free mode, "BPM" when synced to host tempo
+class RateSyncToggleControl : public HandCursorControl
+{
+public:
+  RateSyncToggleControl(const IRECT& bounds, int syncParamIdx, int rateParamIdx)
+  : HandCursorControl(bounds, syncParamIdx)
+  , mParamIdx(syncParamIdx)
+  , mRateIdx(rateParamIdx)
+  {}
+
+  void Draw(IGraphics& g) override
+  {
+    if (const IParam* p = GetParam())
+      SetValue(p->GetNormalized());
+
+    const bool isSync = (GetValue() >= 0.5);
+
+    // background — opaque so it stays readable on the light module panel
+    const IColor bgOff(220,  55,  65,  80);   // dark blue-gray when in Hz mode
+    const IColor bgOn (235, 100, 122, 144);   // brighter purple when synced
+    g.FillRoundRect(isSync ? bgOn : bgOff, mRECT, 3.f);
+
+    // border (more visible than the waveform toggle's border)
+    const IColor borderCol(180, 145, 150, 160);
+    g.DrawRoundRect(borderCol, mRECT, 3.f, nullptr, 1.f);
+
+    // label: "Hz" in free mode, "BPM" in sync mode
+    const IColor textCol(255, 235, 235, 240);
+    IText text(9.f, textCol, "Inter-Semi-Bold", EAlign::Center, EVAlign::Middle);
+    g.DrawText(text, isSync ? "BPM" : "Hz", mRECT);
+
+    if (GetMouseIsOver())
+      DrawHoverOverlay(g, mRECT, IColor(25, 200, 200, 200), 3.f);
+  }
+
+  // click — flip between Hz and BPM modes
+  void OnMouseDown(float, float, const IMouseMod&) override
+  {
+    double cur = GetValue();
+    if (const IParam* p = GetParam())
+      cur = p->GetNormalized();  // sync with actual value
+
+    const bool turningOn = (cur < 0.5);
+    const double newNorm = turningOn ? 1.0 : 0.0;  // flip
+
+    SetValue(newNorm);
+
+    if (auto* dlg = GetDelegate())
+    {
+      dlg->SendParameterValueFromUI(mParamIdx, newNorm);  // send to DAW
+
+      // when entering sync mode, snap the rate knob to the nearest division
+      // so the displayed label matches a real division step
+      if (turningOn && mRateIdx >= 0)
+      {
+        if (IParam* rp = dlg->GetParam(mRateIdx))
+        {
+          const double n = rp->GetNormalized();    // current knob position
+          const int    d = NormToSyncDivIdx(n);    // nearest division
+          const double s = SyncDivIdxToNorm(d);    // its normalized position
+          if (std::fabs(s - n) > 1e-9)
+            dlg->SendParameterValueFromUI(mRateIdx, s);  // snap the knob
+        }
+      }
+    }
+
+    if (auto* ui = GetUI())
+      ui->SetAllControlsDirty();  // refresh rate label and arc
+
+    SetDirty(false);
+  }
+
+private:
+  int mParamIdx = -1;  // sync toggle param
+  int mRateIdx  = -1;  // matching rate param (for snap on enable)
 };
 
 // text label under mid-size knobs — shows value in different formats depending on param

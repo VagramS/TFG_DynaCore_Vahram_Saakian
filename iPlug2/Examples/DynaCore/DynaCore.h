@@ -64,6 +64,12 @@ enum EParams
   kTremWaveform,     // tremolo shape: 0 = sine, 1 = square
   kPanWaveform,      // pan shape: 0 = sine, 1 = square
 
+  // --- Rate sync toggles (Hz vs musical division relative to host BPM) ---
+  kTremRateSync,     // 0 = Hz, 1 = synced to BPM
+  kPanRateSync,      // 0 = Hz, 1 = synced to BPM
+  kPitchRateSync,    // 0 = Hz, 1 = synced to BPM
+  kPhaserRateSync,   // 0 = Hz, 1 = synced to BPM
+
   kNumParams         // total number of parameters
 };
 

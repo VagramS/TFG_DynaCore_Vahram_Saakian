@@ -89,6 +89,12 @@ DynaCore::DynaCore(const InstanceInfo& info)
   GetParam(kTremWaveform)->InitBool("Trem Waveform", false);    // off = sine
   GetParam(kPanWaveform)->InitBool("Pan Waveform", false);      // off = sine
 
+  // Rate sync (BPM): off = knob is Hz, on = knob picks a musical division
+  GetParam(kTremRateSync)->InitBool  ("Trem Rate Sync",   false);  // off = Hz
+  GetParam(kPanRateSync)->InitBool   ("Pan Rate Sync",    false);  // off = Hz
+  GetParam(kPitchRateSync)->InitBool ("Pitch Rate Sync",  false);  // off = Hz
+  GetParam(kPhaserRateSync)->InitBool("Phaser Rate Sync", false);  // off = Hz
+
   // set all params to defaults so the plugin starts in a known state
   ApplyDefaultPresetParams([this](int pIdx, double plain)
   {
@@ -167,6 +173,20 @@ DynaCore::DynaCore(const InstanceInfo& info)
     pGraphics->AttachControl(new WaveformToggleControl(
       IRECT(344.f, 362.f, 363.f, 380.f), kPanWaveform))
       ->SetTooltip("Pan waveform: Sine / Square");
+
+    // RATE SYNC TOGGLES (Hz <-> BPM) — above each Rate knob
+    pGraphics->AttachControl(new RateSyncToggleControl(
+      IRECT(69.f, 296.f, 91.f, 310.f), kTremRateSync, kTremRate))
+      ->SetTooltip("Tremolo Rate: free Hz or sync to host tempo");
+    pGraphics->AttachControl(new RateSyncToggleControl(
+      IRECT(285.f, 296.f, 307.f, 310.f), kPanRateSync, kPanRate))
+      ->SetTooltip("Pan Rate: free Hz or sync to host tempo");
+    pGraphics->AttachControl(new RateSyncToggleControl(
+      IRECT(501.f, 296.f, 523.f, 310.f), kPitchRateSync, kPitchRate))
+      ->SetTooltip("Pitch Rate: free Hz or sync to host tempo");
+    pGraphics->AttachControl(new RateSyncToggleControl(
+      IRECT(717.f, 296.f, 739.f, 310.f), kPhaserRateSync, kPhaserRate))
+      ->SetTooltip("Phaser Rate: free Hz or sync to host tempo");
 
     // SELECT PRESET + OVERLAY
     IBitmap presetBtnBmp   = pGraphics->LoadBitmap(SELECT_PRESET_FN, 1);
@@ -521,24 +541,39 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   const double outAmp    = std::exp(outDB * kLn10Over20);              // convert dB to linear
   const int nChans       = NOutChansConnected();                       // how many channels
 
+  // turns a rate knob into Hz — uses host BPM in sync mode, raw Hz otherwise
+  // result is clamped to the param's max so fast divisions stay in range
+  const double hostBPM = GetTempo();  // host tempo (defaults to 120 if not playing)
+  auto RateHz = [this, hostBPM](int rateIdx, int syncIdx) -> double
+  {
+    IParam* p = GetParam(rateIdx);
+    if (!p) return 0.0;                            // shouldn't happen, just safety
+    const bool sync = GetParam(syncIdx)->Bool();   // is the BPM toggle on?
+    if (!sync)
+      return p->Value();  // free mode — knob value is Hz
+    const int divIdx = NormToSyncDivIdx(p->GetNormalized());  // knob -> division
+    const double hz  = SyncDivFreqHz(hostBPM, divIdx);        // division -> Hz at BPM
+    return std::min(hz, p->GetMax());  // cap so we don't exceed module's Hz range
+  };
+
   // tremolo
   const bool tremBypass  = GetParam(kTremBypass)->Bool();
-  const double tremRate  = GetParam(kTremRate)->Value();           // Hz
+  const double tremRate  = RateHz(kTremRate, kTremRateSync);          // Hz
   const double tremDepth = GetParam(kTremDepth)->Value() / 100.0; // normalize to 0..1
 
   // pan
   const bool panBypass   = GetParam(kPanBypass)->Bool();
-  const double panRate   = GetParam(kPanRate)->Value();            // Hz
+  const double panRate   = RateHz(kPanRate, kPanRateSync);             // Hz
   const double panDepth  = GetParam(kPanDepth)->Value() / 100.0;  // normalize to 0..1
 
   // pitch drift
   const bool pitchBypass = GetParam(kPitchBypass)->Bool();
-  const double pitchRate = GetParam(kPitchRate)->Value();           // Hz
+  const double pitchRate = RateHz(kPitchRate, kPitchRateSync);         // Hz
   const double pitchDepth= GetParam(kPitchDepth)->Value() / 100.0; // normalize to 0..1
 
   // phaser
   const bool phaserBypass= GetParam(kPhaserBypass)->Bool();
-  const double phaserRate= GetParam(kPhaserRate)->Value();           // Hz
+  const double phaserRate= RateHz(kPhaserRate, kPhaserRateSync);       // Hz
   const double phaserDepth= GetParam(kPhaserDepth)->Value() / 100.0; // normalize to 0..1
 
   // compressor
