@@ -1339,8 +1339,8 @@ private:
   const IText mValueText{17.f, IColor(255, 53, 66, 80), "Inter-Regular", EAlign::Center, EVAlign::Middle};
 };
 
-// Small text button that lights up when on (used for auto-gain "A")
-// when active, reads GR and moves the Gain knob to match in real time
+// Small text button that lights up when on (used for the auto-gain "Auto" toggle)
+// when active, reads the auto-gain value from the DSP and moves the Gain knob to match
 class SmallTextToggleControl : public HandCursorControl
 {
 public:
@@ -1375,12 +1375,11 @@ public:
         bool dspRunning = (grCount != mLastGRCount);
         mLastGRCount = grCount;
 
-        // target GR (0 if paused)
-        double targetGR = dspRunning
-          ? std::max(mPlug->GetGainReductionL(), mPlug->GetGainReductionR())
-          : 0.0;
+        // target = the auto-gain value the DSP is applying
+        // (already smoothed in DSP, so the knob shows what is being compensated)
+        double targetGR = dspRunning ? mPlug->GetAutoGainMakeupDB() : 0.0;
 
-        // one-pole smoother
+        // light visual smoother — for the soft fall when DSP pauses or is bypassed
         double coeff = (targetGR > mSmoothedGR) ? kAttackCoeff : kReleaseCoeff;
         mSmoothedGR = targetGR + coeff * (mSmoothedGR - targetGR);
 
@@ -1431,28 +1430,38 @@ public:
     const bool turningOn = (cur < 0.5);
     const double newNorm = turningOn ? 1.0 : 0.0;
 
-    if (auto* dlg = GetDelegate())
+    auto* dlg = GetDelegate();
+    if (!dlg) { SetDirty(false); return; }
+
+    // Auto must be toggled before we touch the gain knob.
+    // SendParameterValueFromUI can cause an immediate redraw, and if Auto is
+    // still on during that redraw, the auto-gain block in Draw runs one more
+    // time and overwrites whatever value we just wrote into gainP
+    if (turningOn)
     {
-      if (turningOn)
-      {
-        // save current gain value so we can restore it later
-        if (IParam* gainP = dlg->GetParam(kCompGain))
-          mSavedGainDB = gainP->Value();
-        mSmoothedGR = 0.0;  // start smoother from 0
-      }
-      else
-      {
-        // turning OFF — restore the gain value from before auto-gain was enabled
-        if (IParam* gainP = dlg->GetParam(kCompGain))
-        {
-          gainP->Set(mSavedGainDB);
-          dlg->SendParameterValueFromUI(kCompGain, gainP->ToNormalized(mSavedGainDB));
-        }
-        mSmoothedGR = 0.0;
-      }
+      // save current gain before enabling — once Auto is on, the next Draw
+      // will start writing mSmoothedGR (=0) into gainP
+      if (IParam* gainP = dlg->GetParam(kCompGain))
+        mSavedGainDB = gainP->Value();
+      mSmoothedGR = 0.0;
 
       SetValue(newNorm);
       dlg->SendParameterValueFromUI(mParamIdx, newNorm);
+    }
+    else
+    {
+      // disable Auto first, so any redraw triggered by the gain restore below
+      // sees on=false and skips the auto-gain block
+      SetValue(newNorm);
+      dlg->SendParameterValueFromUI(mParamIdx, newNorm);
+      mSmoothedGR = 0.0;
+
+      // restore the gain to what the user had before Auto was on
+      if (IParam* gainP = dlg->GetParam(kCompGain))
+      {
+        gainP->Set(mSavedGainDB);
+        dlg->SendParameterValueFromUI(kCompGain, gainP->ToNormalized(mSavedGainDB));
+      }
     }
 
     if (auto* ui = GetUI())
@@ -1463,7 +1472,7 @@ public:
 
 private:
   int       mParamIdx = -1;
-  char      mLabel[4] = {};
+  char      mLabel[8] = {};
   DynaCore* mPlug = nullptr;
   double    mSavedGainDB = 0.0;   // gain value saved when auto-gain is turned ON
   double    mSmoothedGR  = 0.0;   // smoothed GR for visual display

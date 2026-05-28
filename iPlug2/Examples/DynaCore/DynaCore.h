@@ -104,6 +104,9 @@ public:
   double   GetGainReductionR()  const { return mGainReductionR; }
   uint64_t GetGRUpdateCount()   const { return mGRUpdateCount; }
 
+  // auto-gain makeup in dB — averaged GR the compressor is applying
+  double   GetAutoGainMakeupDB() const { return mAutoGainEnvDB; }
+
 private:
   // output meter values (DSP writes, UI reads)
   double   mOutputLevelDBL   = -100.0;
@@ -155,6 +158,9 @@ private:
 
   // compressor peak envelope per channel
   double mCompEnv[2] = {};
+
+  // auto-gain: smoothed average of real GR (dB), used as the makeup amount
+  double mAutoGainEnvDB = 0.0;
 
   // bypass ramps (0=off, 1=on) — fades over ~10ms so there are no clicks
   double mTremBypassRamp   = 0.0;

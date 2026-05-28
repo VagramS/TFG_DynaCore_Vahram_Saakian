@@ -369,10 +369,10 @@ DynaCore::DynaCore(const InstanceInfo& info)
     AttachMidKnobWithArc(compRatioRect, kCompRatio,     "Compressor ratio");
     AttachMidKnobWithArc(compGainRect, kCompGain,       "Compressor makeup gain (dB)");
 
-    // AUTO-GAIN BUTTON — small "A" above the Gain knob
+    // AUTO-GAIN BUTTON — small "Auto" above the Gain knob
     pGraphics->AttachControl(new SmallTextToggleControl(
-      IRECT(296.f, 481.f, 310.f, 493.f), kCompAutoGain, "A", this))
-      ->SetTooltip("Auto makeup gain — adjusts gain based on threshold and ratio");
+      IRECT(289.f, 481.f, 313.f, 493.f), kCompAutoGain, "Auto", this))
+      ->SetTooltip("Auto makeup gain — compensates the real average gain reduction");
 
     // COMP: Attack / Release (small)
     IRECT compAttackRect  (351.2f, 492.2f, 351.2f + kSmW, 492.2f + kSmH);
@@ -493,6 +493,15 @@ namespace
     return 0.0;                                           // below threshold = no reduction
   }
 
+  // soft taper for depth knobs: linear up to the knee, then eases to maxOut.
+  // low/mid values stay unchanged, only the top of the range is held back
+  inline double SoftCap(double x, double knee, double maxOut)
+  {
+    if (x <= knee) return x;                          // below knee: no change
+    const double t = (x - knee) / (1.0 - knee);       // 0..1 in the upper region
+    return knee + (maxOut - knee) * (2.0 * t - t * t); // quadratic ease-out toward maxOut
+  }
+
   // adjusts GR value based on the mix knob — for the meter display
   inline double EffectiveGR(double rawGR, double compMix)
   {
@@ -527,6 +536,7 @@ void DynaCore::OnReset()
   std::memset(mAllpassState, 0, sizeof(mAllpassState));  // clear phaser states
 
   mCompEnv[0] = mCompEnv[1] = 0.0;  // reset compressor
+  mAutoGainEnvDB = 0.0;             // reset auto-gain envelope
 
   mOutputLevelDBL = mOutputLevelDBR = -100.0;    // meters show silence
   mOutputSmoothedL = mOutputSmoothedR = -100.0;
@@ -569,12 +579,14 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   // pitch drift
   const bool pitchBypass = GetParam(kPitchBypass)->Bool();
   const double pitchRate = RateHz(kPitchRate, kPitchRateSync);         // Hz
-  const double pitchDepth= GetParam(kPitchDepth)->Value() / 100.0; // normalize to 0..1
+  // soft cap above 50% so max depth does not wobble the vocal too much
+  const double pitchDepth= SoftCap(GetParam(kPitchDepth)->Value() / 100.0, 0.5, 0.65);
 
   // phaser
   const bool phaserBypass= GetParam(kPhaserBypass)->Bool();
   const double phaserRate= RateHz(kPhaserRate, kPhaserRateSync);       // Hz
-  const double phaserDepth= GetParam(kPhaserDepth)->Value() / 100.0; // normalize to 0..1
+  // soft cap above 50% — at max knob there is still ~40% dry signal, so vocal stays clear
+  const double phaserDepth= SoftCap(GetParam(kPhaserDepth)->Value() / 100.0, 0.5, 0.60);
 
   // compressor
   const bool compBypass    = GetParam(kCompBypass)->Bool();
@@ -605,9 +617,13 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   const double compReleaseCoeff = (compReleaseMs > 0.0)
     ? std::exp(-kTwoPi / (compReleaseMs * 0.001 * sr)) : 0.0;
 
+  // auto-gain smoothing: ~300ms low-pass on the real GR, so makeup follows the
+  // average gain reduction instead of fighting each transient
+  const double autoGainCoeff = std::exp(-kTwoPi / (0.3 * sr));
+
   // pitch drift: 20ms base delay, LFO moves the read position ±10ms
   constexpr double kPitchCenterDelayMs = 20.0;  // center delay
-  constexpr double kPitchModDepthMs    = 10.0;  // LFO swing range
+  constexpr double kPitchModDepthMs    = 2.0;   // LFO swing range — small so vocals don't wobble too much
 
   // phaser sweep range on a log scale (sounds more natural)
   constexpr double kPhaserMinFreq     = 200.0;   // lowest freq
@@ -673,10 +689,13 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       const double grL = ComputeGR(mCompEnv[0], sCompThresh, sCompRatio);  // gain reduction L
       const double grR = ComputeGR(mCompEnv[1], sCompThresh, sCompRatio);  // gain reduction R
 
-      // auto-gain calculates makeup from threshold+ratio, or just use the knob
-      const double makeupDB = compAutoGain
-        ? std::fabs(sCompThresh) * (1.0 - 1.0 / sCompRatio) * 0.7  // auto formula
-        : sCompGainDB;                                               // manual value
+      // auto-gain envelope: slow average of the real GR
+      // when the compressor barely works, this stays near 0, so makeup stays near 0 too
+      const double avgGR = 0.5 * (grL + grR);
+      mAutoGainEnvDB = avgGR + autoGainCoeff * (mAutoGainEnvDB - avgGR);
+
+      // auto on: compensate the averaged GR. auto off: just use the knob value
+      const double makeupDB = compAutoGain ? mAutoGainEnvDB : sCompGainDB;
 
       // apply GR and makeup, convert to linear
       const double gainL = std::exp((makeupDB - grL) * kLn10Over20);  // dB to multiplier
@@ -814,7 +833,7 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       // filters keep running in bypass so they stay warm (no click on re-enable)
       if (mPhaserBypassRamp > 0.0 || phaserTarget > 0.0)
       {
-        constexpr double kPhaserFeedback = 0.45;  // feedback amount
+        constexpr double kPhaserFeedback = 0.10;  // feedback amount — kept low so vocal formants are not over-colored
 
         // LFO gives sweep position 0..1 (sin for L, cos for R = stereo)
         double sweepNormL = 0.5 + 0.5 * std::sin(mPhaserPhase * kTwoPi);  // L sweep
@@ -857,10 +876,15 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
     }
 
     // --- Master Intensity: blend between comp-only and full effect chain ---
+    // equal-power crossfade (sin/cos) instead of linear, so volume does not dip
+    // in the middle — phaser and pitch drift shift the phase a bit, and on a
+    // linear crossfade those shifts would partially cancel with the dry at 50%
     double wetL = procL;                                     // signal after all effects
     double wetR = procR;
-    procL = compL + sMasterInt * (wetL - compL);             // 0% = comp only, 100% = everything
-    procR = compR + sMasterInt * (wetR - compR);
+    const double intDryGain = std::cos(sMasterInt * kPi * 0.5);  // 0%=1, 100%=0
+    const double intWetGain = std::sin(sMasterInt * kPi * 0.5);  // 0%=0, 100%=1
+    procL = intDryGain * compL + intWetGain * wetL;
+    procR = intDryGain * compR + intWetGain * wetR;
 
     procL *= sOutAmp;                                        // apply output gain
     procR *= sOutAmp;

@@ -323,14 +323,14 @@ static const PresetValues kPresetVals_Vocals[4] =
 
 static const PresetValues kPresetVals_Pads[4] =
 {
-  // 1) Cryostasis Pad — frozen, almost static pad, deep phaser + heavy comp
-  { 1,0,0,       1,0,0,      0,0.05,8,    0,0.06,80,   0,30,-30,2.0,-2.0,40,600,  160, 40,-3.0 },
+  // 1) Cryostasis Pad — frozen drone, phaser-only (no pitch, no trem, no pan)
+  { 1,0,0,       1,0,0,      1,0,0,       0,0.04,95,   0,40,-28,2.5,-2.0,50,800,  180, 45,-3.0 },
 
   // 2) Nocturne Pulse — slow breathing tremolo + wide pan, ambient feel
   { 0,0.25,60,   0,0.12,85,  1,0,0,       1,0,0,       0,50,-30,1.8,0.0,30,500,   180, 45,-2.0 },
 
-  // 3) Moon Tides — gentle stereo movement, subtle pitch drift detune
-  { 1,0,0,       0,0.08,50,  0,0.12,12,   0,0.15,35,   0,20,-30,1.5,-1.0,35,700,  140, 35,-2.5 },
+  // 3) Moon Tides — lush stereo chorus, pan + pitch drift (no phaser)
+  { 1,0,0,       0,0.10,70,  0,0.18,20,   1,0,0,       0,25,-28,1.8,-1.0,30,650,  130, 50,-2.0 },
 
   // 4) Glass Cathedral — shimmering phaser + fast subtle tremolo
   { 0,7.00,12,   1,0,0,      1,0,0,       0,0.30,65,   0,45,-25,2.5,1.0,15,350,   100, 55,-1.5 }
