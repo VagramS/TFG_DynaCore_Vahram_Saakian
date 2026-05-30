@@ -695,6 +695,7 @@ public:
       const IRECT revertRect(419.f, 538.f, 541.f, 566.f);
       auto* revertButton = new RevertButtonControl(revertRect, overlay);
       ui->AttachControl(revertButton);
+      revertButton->SetTooltip("Revert to Default — resets all parameters to their initial values and clears the active preset.");
 
       overlay->SetRevertButton(revertButton);  // so overlay can remove it on close
     }

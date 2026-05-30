@@ -139,7 +139,7 @@ DynaCore::DynaCore(const InstanceInfo& info)
     IBitmap bmpOn  = pGraphics->LoadBitmap(COMP_ON_FN,  1);
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       compBtnRect, kCompBypass, bmpOff, bmpOn, hoverColorButtons, 5.f))
-      ->SetTooltip("Compressor On/Off");
+      ->SetTooltip("Compressor On/Off — turns the dynamic range processing on or off.");
 
     // BYPASS (global)
     IRECT bypassBtnRect(836.f, 74.f, 898.f, 94.f);
@@ -147,7 +147,7 @@ DynaCore::DynaCore(const InstanceInfo& info)
     IBitmap bmpBypOn  = pGraphics->LoadBitmap(BYPASS_ON_FN,  1);
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       bypassBtnRect, kBypass, bmpBypOn, bmpBypOff, hoverColorButtons, 3.f))
-      ->SetTooltip("Global Bypass — pass signal without processing");
+      ->SetTooltip("Global Bypass — routes the dry input straight to the output, skipping all processing.");
 
     // 4 MODULE TOGGLES
     IBitmap modOff = pGraphics->LoadBitmap(MODULE_OFF_FN, 1);
@@ -155,38 +155,38 @@ DynaCore::DynaCore(const InstanceInfo& info)
 
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       IRECT(126.f,390.f,145.f,408.f), kTremBypass,  modOff, modOn, hoverColorModules, 5.f))
-      ->SetTooltip("Tremolo On/Off");
+      ->SetTooltip("Tremolo On/Off — turns the periodic volume modulation on or off.");
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       IRECT(344.f,390.f,363.f,408.f), kPanBypass,   modOff, modOn, hoverColorModules, 5.f))
-      ->SetTooltip("Pan Motion On/Off");
+      ->SetTooltip("Pan Motion On/Off — turns the automatic left/right movement on or off.");
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       IRECT(560.f,390.f,579.f,408.f), kPitchBypass, modOff, modOn, hoverColorModules, 5.f))
-      ->SetTooltip("Pitch Drift On/Off");
+      ->SetTooltip("Pitch Drift On/Off — turns the chorus-style detuning on or off.");
     pGraphics->AttachControl(new HoverButtonWithOverlay(
       IRECT(776.f,390.f,795.f,408.f), kPhaserBypass,modOff, modOn, hoverColorModules, 5.f))
-      ->SetTooltip("Phaser On/Off");
+      ->SetTooltip("Phaser On/Off — turns the moving-notch sweep effect on or off.");
 
     // WAVEFORM SWITCHES (sine/square) — same size as bypass, 10px gap above
     pGraphics->AttachControl(new WaveformToggleControl(
       IRECT(126.f, 362.f, 145.f, 380.f), kTremWaveform))
-      ->SetTooltip("Tremolo waveform: Sine / Square");
+      ->SetTooltip("Tremolo Waveform — switches the LFO shape between smooth sine and choppy square.");
     pGraphics->AttachControl(new WaveformToggleControl(
       IRECT(344.f, 362.f, 363.f, 380.f), kPanWaveform))
-      ->SetTooltip("Pan waveform: Sine / Square");
+      ->SetTooltip("Pan Waveform — switches the LFO shape between smooth sine and choppy square.");
 
     // RATE SYNC TOGGLES (Hz <-> BPM) — above each Rate knob
     pGraphics->AttachControl(new RateSyncToggleControl(
       IRECT(69.f, 296.f, 91.f, 310.f), kTremRateSync, kTremRate))
-      ->SetTooltip("Tremolo Rate: free Hz or sync to host tempo");
+      ->SetTooltip("Tremolo Rate Sync — switches the Rate knob between free Hz and musical divisions tied to the DAW tempo.");
     pGraphics->AttachControl(new RateSyncToggleControl(
       IRECT(285.f, 296.f, 307.f, 310.f), kPanRateSync, kPanRate))
-      ->SetTooltip("Pan Rate: free Hz or sync to host tempo");
+      ->SetTooltip("Pan Rate Sync — switches the Rate knob between free Hz and musical divisions tied to the DAW tempo.");
     pGraphics->AttachControl(new RateSyncToggleControl(
       IRECT(501.f, 296.f, 523.f, 310.f), kPitchRateSync, kPitchRate))
-      ->SetTooltip("Pitch Rate: free Hz or sync to host tempo");
+      ->SetTooltip("Pitch Drift Rate Sync — switches the Rate knob between free Hz and musical divisions tied to the DAW tempo.");
     pGraphics->AttachControl(new RateSyncToggleControl(
       IRECT(717.f, 296.f, 739.f, 310.f), kPhaserRateSync, kPhaserRate))
-      ->SetTooltip("Phaser Rate: free Hz or sync to host tempo");
+      ->SetTooltip("Phaser Rate Sync — switches the Rate knob between free Hz and musical divisions tied to the DAW tempo.");
 
     // SELECT PRESET + OVERLAY
     IBitmap presetBtnBmp   = pGraphics->LoadBitmap(SELECT_PRESET_FN, 1);
@@ -233,7 +233,8 @@ DynaCore::DynaCore(const InstanceInfo& info)
       dividerBmp,
       presetFirstSelectBmp,
       presetRestSelectBmp,
-      presetPointerBmp));
+      presetPointerBmp))
+      ->SetTooltip("Select Preset — opens the preset browser to pick a factory preset from the four categories (Vocals, Pads, Drums, Experimental).");
 
     // ===== Preset Name text at X:55, Y:85 =====
     {
@@ -251,8 +252,10 @@ DynaCore::DynaCore(const InstanceInfo& info)
       IRECT nextR(nextX, nextY, nextX + (float)nextPresetBmp.W(), nextY + (float)nextPresetBmp.H());
 
       // dir: -1 = previous, +1 = next
-      pGraphics->AttachControl(new PresetStepButtonControl(prevR, prevPresetBmp, -1));
-      pGraphics->AttachControl(new PresetStepButtonControl(nextR, nextPresetBmp, +1));
+      pGraphics->AttachControl(new PresetStepButtonControl(prevR, prevPresetBmp, -1))
+        ->SetTooltip("Previous Preset — loads the previous preset in the carousel, wrapping across categories.");
+      pGraphics->AttachControl(new PresetStepButtonControl(nextR, nextPresetBmp, +1))
+        ->SetTooltip("Next Preset — loads the next preset in the carousel, wrapping across categories.");
     }
 
     // ===== KNOBS =====
@@ -345,14 +348,14 @@ DynaCore::DynaCore(const InstanceInfo& info)
         ->SetTooltip(tip);
     };
 
-    AttachBigKnobWithArc(tremRateRect,   kTremRate,    "Tremolo LFO speed (Hz)");
-    AttachBigKnobWithArc(tremDepthRect,  kTremDepth,   "Tremolo modulation depth (%)");
-    AttachBigKnobWithArc(panRateRect,    kPanRate,     "Pan Motion LFO speed (Hz)");
-    AttachBigKnobWithArc(panDepthRect,   kPanDepth,    "Pan Motion depth (%)");
-    AttachBigKnobWithArc(pitchRateRect,  kPitchRate,   "Pitch Drift LFO speed (Hz)");
-    AttachBigKnobWithArc(pitchDepthRect, kPitchDepth,  "Pitch Drift modulation depth (%)");
-    AttachBigKnobWithArc(phaserRateRect, kPhaserRate,  "Phaser sweep speed (Hz)");
-    AttachBigKnobWithArc(phaserDepthRect,kPhaserDepth, "Phaser wet/dry mix (%)");
+    AttachBigKnobWithArc(tremRateRect,   kTremRate,    "Tremolo Rate (Hz) — controls how fast the volume pulses.");
+    AttachBigKnobWithArc(tremDepthRect,  kTremDepth,   "Tremolo Depth (%) — controls how much the volume drops on each pulse.");
+    AttachBigKnobWithArc(panRateRect,    kPanRate,     "Pan Motion Rate (Hz) — controls how fast the sound moves between left and right.");
+    AttachBigKnobWithArc(panDepthRect,   kPanDepth,    "Pan Motion Depth (%) — controls how far the sound moves toward each side.");
+    AttachBigKnobWithArc(pitchRateRect,  kPitchRate,   "Pitch Drift Rate (Hz) — controls how fast the pitch wobbles.");
+    AttachBigKnobWithArc(pitchDepthRect, kPitchDepth,  "Pitch Drift Depth (%) — controls how strong the detuning is.");
+    AttachBigKnobWithArc(phaserRateRect, kPhaserRate,  "Phaser Rate (Hz) — controls how fast the notches move through the spectrum.");
+    AttachBigKnobWithArc(phaserDepthRect,kPhaserDepth, "Phaser Depth (%) — controls how much of the phased signal is mixed with the dry.");
 
     // MID / SMALL knobs with hover overlay enabled
     const float kMidW = 19.f,  kMidH = 19.f;
@@ -364,34 +367,34 @@ DynaCore::DynaCore(const InstanceInfo& info)
     IRECT compRatioRect   (203.5f, 512.f, 203.5f + kMidW, 512.f + kMidH);
     IRECT compGainRect    (274.5f, 513.f, 274.5f + kMidW, 513.f + kMidH);
 
-    AttachMidKnobWithArc(compMixRect, kCompMix,         "Compressor parallel mix (%)");
-    AttachMidKnobWithArc(compThreshRect, kCompThreshold,"Compressor threshold (dB)");
-    AttachMidKnobWithArc(compRatioRect, kCompRatio,     "Compressor ratio");
-    AttachMidKnobWithArc(compGainRect, kCompGain,       "Compressor makeup gain (dB)");
+    AttachMidKnobWithArc(compMixRect, kCompMix,         "Compressor Mix (%) — blends the compressed signal with the dry input (parallel compression).");
+    AttachMidKnobWithArc(compThreshRect, kCompThreshold,"Compressor Threshold (dB) — sets the level above which compression kicks in.");
+    AttachMidKnobWithArc(compRatioRect, kCompRatio,     "Compressor Ratio — sets how strongly the signal is reduced above the threshold.");
+    AttachMidKnobWithArc(compGainRect, kCompGain,       "Compressor Gain (dB) — boosts the output to compensate for the level lost during compression.");
 
     // AUTO-GAIN BUTTON — small "Auto" above the Gain knob
     pGraphics->AttachControl(new SmallTextToggleControl(
       IRECT(289.f, 481.f, 313.f, 493.f), kCompAutoGain, "Auto", this))
-      ->SetTooltip("Auto makeup gain — compensates the real average gain reduction");
+      ->SetTooltip("Auto Gain — automatically tracks the real average gain reduction and compensates it in real time.");
 
     // COMP: Attack / Release (small)
     IRECT compAttackRect  (351.2f, 492.2f, 351.2f + kSmW, 492.2f + kSmH);
     IRECT compReleaseRect (351.2f, 540.2f, 351.2f + kSmW, 540.2f + kSmH);
 
-    AttachSmallKnobWithArc(compAttackRect, kCompAttack,   "Compressor attack time (ms)");
-    AttachSmallKnobWithArc(compReleaseRect, kCompRelease, "Compressor release time (ms)");
+    AttachSmallKnobWithArc(compAttackRect, kCompAttack,   "Compressor Attack (ms) — how fast the compressor reacts when the signal goes above the threshold.");
+    AttachSmallKnobWithArc(compReleaseRect, kCompRelease, "Compressor Release (ms) — how fast the compressor stops compressing when the signal drops back below the threshold.");
 
     // MASTERING: Width (mid) — in MASTERING section
     IRECT widthRect(532.5f, 512.f, 532.5f + kMidW, 512.f + kMidH);
-    AttachMidKnobWithArc(widthRect, kWidth,             "Stereo width (0%=mono, 100%=normal, 200%=wide)");
+    AttachMidKnobWithArc(widthRect, kWidth,             "Stereo Width — controls how wide the stereo image is (0% = mono, 100% = normal, 200% = wide).");
 
     // MASTERING: Intensity (mid)
     IRECT masterIntRect(617.5f, 512.f, 617.5f + kMidW, 512.f + kMidH);
-    AttachMidKnobWithArc(masterIntRect, kMasterIntensity,"Master effect intensity (%)");
+    AttachMidKnobWithArc(masterIntRect, kMasterIntensity,"Master Intensity (%) — blends between only the compressed signal and the full effect chain.");
 
     // OUTPUT: Level (mid)
     IRECT outLevelRect(954.5f, 527.2f, 954.5f + kMidW, 527.2f + kMidH);
-    AttachMidKnobWithArc(outLevelRect, kOutputLevel,    "Output level (dB)");
+    AttachMidKnobWithArc(outLevelRect, kOutputLevel,    "Output Level (dB) — adjusts the final output volume of the plugin.");
 
     // ====== Value labels for MID knobs (COMP + MASTER) ======
     {
@@ -423,12 +426,12 @@ DynaCore::DynaCore(const InstanceInfo& info)
     // GR (Gain Reduction) meter in compression section
     IRECT grMeterRect(412.f, 491.f, 472.f, 572.f);  // generous margins: bars at x=416..462, y=499..559
     pGraphics->AttachControl(new GRMeterControl(grMeterRect, this))
-      ->SetTooltip("Compressor gain reduction (dB)");
+      ->SetTooltip("Gain Reduction Meter (dB) — shows how many dB the compressor is currently cutting from the signal.");
 
     // Stereo output level meter (two bars + dB readout)
     IRECT meterRect(930.f, 72.f, 978.f, 525.f);
     pGraphics->AttachControl(new StereoLevelMeterControl(meterRect, this))
-      ->SetTooltip("Output level meter (dB)");
+      ->SetTooltip("Output Level Meter (dB) — shows the peak output level of the plugin.");
   };
 #endif
 }
