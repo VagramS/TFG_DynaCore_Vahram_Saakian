@@ -26,29 +26,30 @@ Input -> [Mono Fold] -> Compressor -> Tremolo -> Pan Motion
 ## Modules
 
 ### Tremolo
-Amplitude LFO. Right channel has a ~30° phase offset for stereo movement.
-- **Rate** 0–20 Hz | **Depth** 0–100%
+Amplitude LFO. Right channel has a ~30° phase offset for stereo movement. Selectable sine/square waveform.
+- **Rate** 0–20 Hz | **Depth** 0–100% | **Waveform** (sine/square) | **Rate Sync** (Hz / BPM)
 
 ### Pan Motion
-Constant-power auto-pan LFO.
-- **Rate** 0–10 Hz | **Depth** 0–100%
+Constant-power auto-pan LFO. Selectable sine/square waveform.
+- **Rate** 0–10 Hz | **Depth** 0–100% | **Waveform** (sine/square) | **Rate Sync** (Hz / BPM)
 
 ### Pitch Drift
-Modulated delay line (chorus style). L uses sin LFO, R uses cos for a 90° spread.
-- **Rate** 0–12 Hz | **Depth** 0–100%
+Modulated delay line (chorus style). L uses sin LFO, R uses cos for a 90° spread. LFO swing is small (±2 ms) so the detune does not fight a singer's natural vibrato. Depth has a soft cap above 50%.
+- **Rate** 0–12 Hz | **Depth** 0–100% | **Rate Sync** (Hz / BPM)
 
 ### Phaser
-6-stage allpass chain with feedback (0.45) and a log sweep from 200 to 4000 Hz.
-- **Rate** 0–10 Hz | **Depth** 0–100%
+6-stage allpass chain with low feedback (0.10) and a log sweep from 200 to 4000 Hz. Depth has a soft cap above 50% so the top of the range stays musical on vocals.
+- **Rate** 0–10 Hz | **Depth** 0–100% | **Rate Sync** (Hz / BPM)
 
 ### Compressor
-Peak-following compressor with parallel mix.
-- **Mix** | **Threshold** –50 to 0 dB | **Ratio** 1:1–20:1
-- **Gain** | **Attack** 0–100 ms | **Release** 0–1000 ms
+Peak-following compressor with parallel mix. Auto Gain mode follows the real average gain reduction (300 ms low-pass) so output stays loudness-matched without coloration.
+- **Mix** 0–100% | **Threshold** −32 to 0 dB | **Ratio** 1:1–20:1
+- **Gain** −20 to +30 dB | **Attack** 0–100 ms | **Release** 0–1000 ms
+- **Auto Gain** (on/off)
 
 ### Mastering
 - **Stereo Width** 0–200% (M/S)
-- **Master Intensity** 0–100% (modulation wet/dry)
+- **Master Intensity** 0–100% (equal-power sin/cos crossfade — volume stays stable in the middle of the knob)
 
 ### Output
 - **Output Level** –20 to +20 dB
@@ -65,6 +66,8 @@ Peak-following compressor with parallel mix.
 - ~10 ms bypass ramp so toggling a module never clicks
 - Stereo output meter (green/yellow/red) + gain reduction meter for the compressor
 - Preset carousel with prev/next arrows and full-screen overlay
+- Hover tooltips on every control with a one-sentence description of what each parameter does
+- BPM sync on all four modulation modules (Trem, Pan, Pitch Drift, Phaser) with musical divisions (1/4, 1/8, 1/8t, etc.)
 
 ---
 

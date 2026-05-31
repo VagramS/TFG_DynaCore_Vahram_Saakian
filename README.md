@@ -21,9 +21,11 @@ DynaCore chains five processing modules in a fixed order:
 
 Plus:
 - **Stereo Width** — M/S processing (0% = mono, 100% = normal, 200% = extra wide)
-- **Master Intensity** — blends all modulation on top of the compressed signal
+- **Master Intensity** — equal-power (sin/cos) crossfade between the compressed-only signal and the full modulated chain
 - **Output Level** — final gain
 - **Global Bypass** — clean crossfade to dry
+- **BPM Sync** on every modulation Rate knob (Hz ↔ musical division)
+- **Hover tooltips** on every control with a one-sentence description
 
 ---
 
@@ -96,8 +98,8 @@ TFG_DynaCore_Vahram_Saakian/          ← repo root
 │   │       │   ├── fonts/            ← Inter typeface
 │   │       │   └── *.plist
 │   │       └── installer/
-│   │           ├── makedist-mac.sh   ← builds .pkg installer
-│   │           └── DynaCore-win.iss  ← Windows (Inno Setup)
+│   │           ├── makedist-mac.sh           ← builds .pkg installer
+│   │           └── DynaCore-1.0.0-macOS.pkg  ← shipped installer
 │   ├── IGraphics/
 │   ├── IPlug/
 │   └── Scripts/
