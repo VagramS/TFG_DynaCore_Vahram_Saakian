@@ -19,13 +19,13 @@ DynaCore chains five processing modules in a fixed order:
 | **Pitch Drift** | Short modulated delay (chorus style), 90° L/R spread |
 | **Phaser** | 6-stage allpass chain with feedback and log-sweep |
 
-Plus:
-- **Stereo Width** — M/S processing (0% = mono, 100% = normal, 200% = extra wide)
-- **Master Intensity** — equal-power (sin/cos) crossfade between the compressed-only signal and the full modulated chain
-- **Output Level** — final gain
-- **Global Bypass** — clean crossfade to dry
-- **BPM Sync** on every modulation Rate knob (Hz ↔ musical division)
-- **Hover tooltips** on every control with a one-sentence description
+Additional features:
+- **Stereo Width** controls mid/side processing: 0% = mono, 100% = normal, 200% = extra wide.
+- **Master Intensity** applies an equal-power (sin/cos) crossfade between the compressed-only signal and the full modulated chain.
+- **Output Level** sets the final gain.
+- **Global Bypass** performs a clean crossfade to the dry signal.
+- Every modulation **Rate** knob supports BPM sync, allowing selection between Hz and musical divisions.
+- Every control shows a **hover tooltip** with a one-sentence description.
 
 ---
 
@@ -41,7 +41,7 @@ Input → [Mono Fold] → Compressor → Tremolo → Pan Motion → Pitch Drift
 
 ## Presets
 
-13 factory presets split into four groups:
+13 factory presets in four groups, plus the default state restored by **Revert to default**:
 
 | Group | Presets |
 |-------|---------|
@@ -50,7 +50,7 @@ Input → [Mono Fold] → Compressor → Tremolo → Pan Motion → Pitch Drift
 | **Drums** (3) | Iron March, Ghost Hats, Submerge Kit |
 | **Experimental** (2) | Event Horizon, Time Shear |
 
-Presets are stored as plain C structs, no iPlug2 preset machinery used.
+Presets are stored as plain C structs; the plugin does not use iPlug2's preset system.
 
 ---
 
@@ -60,6 +60,21 @@ Presets are stored as plain C structs, no iPlug2 preset machinery used.
 |--------|--------------|
 | **VST3** | `/Library/Audio/Plug-Ins/VST3/DynaCore.vst3` |
 | **AUv2** | `/Library/Audio/Plug-Ins/Components/DynaCore.component` |
+
+Validated with `auval -v aufx DnCr UCM1`, and tested in Logic Pro 12.0.1 (AUv2), Studio One 7.2 (VST3 and AUv2) and Fender Studio Pro 8 (VST3 and AUv2).
+
+---
+
+## Demos
+
+Screen recordings of the plugin in use, in [`videos_memoria/`](videos_memoria):
+
+| File | What it shows |
+|------|---------------|
+| `demo-ritual-double.mp4` | Rhythmic movement on a lead vocal with the RITUAL DOUBLE preset |
+| `demo-spectral-glide.mp4` | Widening a vocal overdub with the SPECTRAL GLIDE preset |
+| `demo-pan-motion.mp4` | Pan Motion moving the signal across the stereo field |
+| `demo-full-walkthrough.mp4` | Full walkthrough of the plugin inside a DAW |
 
 ---
 
@@ -103,6 +118,7 @@ TFG_DynaCore_Vahram_Saakian/          ← repo root
 │   ├── IGraphics/
 │   ├── IPlug/
 │   └── Scripts/
+├── videos_memoria/                   ← demo recordings referenced from the thesis
 ├── LICENSE
 └── README.md
 ```
@@ -119,9 +135,9 @@ cd TFG_DynaCore_Vahram_Saakian
 open iPlug2/Examples/DynaCore/DynaCore.xcworkspace
 ```
 
-Pick the **VST3** or **AUv2** scheme, set configuration to **Release**, hit build.
+Select the **VST3** or **AUv2** scheme, set Configuration to **Release**, then press **Build**.
 
-**Or build everything + package installer in one go:**
+**Alternatively, build all components and the package installer in one step:**
 
 ```bash
 cd iPlug2/Examples/DynaCore
@@ -129,9 +145,15 @@ bash installer/makedist-mac.sh
 # → installer/DynaCore-1.0.0-macOS.pkg
 ```
 
+An "Invalid file" error can occur because the AU and VST3 targets both modify the same plist; build those targets separately or run `xcodebuild` with `-jobs 1` (e.g. `xcodebuild -scheme 'All macOS' -jobs 1 ...`).
+
+Because the installer is unsigned, macOS will block the first launch; allow it once via System Settings → Privacy & Security.
+
 ---
 
 ## License
 
+DynaCore is released under the MIT License — see [LICENSE](LICENSE).
+
 Copyright 2025-2026 Vahram Saakian — Universidad Complutense de Madrid.
-Part of a university thesis (TFG). All rights reserved.
+Developed as a Trabajo de Fin de Grado. iPlug2 is included under its own license.
