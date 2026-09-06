@@ -624,7 +624,7 @@ void DynaCore::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   // average gain reduction instead of fighting each transient
   const double autoGainCoeff = std::exp(-kTwoPi / (0.3 * sr));
 
-  // pitch drift: 20ms base delay, LFO moves the read position ±10ms
+  // pitch drift: 20ms base delay, LFO moves the read position ±2ms
   constexpr double kPitchCenterDelayMs = 20.0;  // center delay
   constexpr double kPitchModDepthMs    = 2.0;   // LFO swing range — small so vocals don't wobble too much
 
