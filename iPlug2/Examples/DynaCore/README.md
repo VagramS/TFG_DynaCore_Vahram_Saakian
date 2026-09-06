@@ -5,9 +5,9 @@
 ![Framework](https://img.shields.io/badge/framework-iPlug2-orange)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue)
 ![Formats](https://img.shields.io/badge/formats-VST3%20%7C%20AU-green)
-![License](https://img.shields.io/badge/license-Academic%20(UCM%20TFG)-yellow)
+![License](https://img.shields.io/badge/license-MIT-yellow)
 
-**DynaCore** is a multi-effect audio plugin built with iPlug2. It runs compression, modulation and stereo processing in a fixed signal chain, with a custom UI, 13 factory presets, and per-sample smoothing on all parameters.
+**DynaCore** is a multi-effect audio plugin built with iPlug2. It runs compression, modulation and stereo processing in a fixed signal chain, with a custom UI, 14 factory presets, and per-sample smoothing on all parameters.
 
 Developed as a TFG (Trabajo Fin de Grado) at Universidad Complutense de Madrid, 2025-2026.
 
@@ -59,7 +59,7 @@ Peak-following compressor with parallel mix. Auto Gain mode follows the real ave
 
 ## Features
 
-- 13 factory presets across 4 groups (Vocals, Pads, Drums, Experimental)
+- 14 factory presets across 5 groups (Vocals, Keys/Pads, Drums / Percussion, Experimental / FX, Default/None)
 - Per-sample parameter smoothing (~5 ms) — no zipper noise on automation
 - Rate knobs snap to musically clean Hz values
 - Auto-bypass: modules turn off automatically when Rate or Depth hits zero
@@ -109,9 +109,10 @@ DynaCore/
 | Group | Presets |
 |---|---|
 | Vocals | Cold Whisper 14, Blade Mono Focus, Spectral Glide, Ritual Double |
-| Pads | Cryostasis Pad, Nocturne Pulse, Moon Tides, Glass Cathedral |
-| Drums | Iron March, Ghost Hats, Submerge Kit |
-| Experimental | Event Horizon, Time Shear |
+| Keys/Pads | Cryostasis Pad, Nocturne Pulse, Moon Tides, Glass Cathedral |
+| Drums / Percussion | Iron March, Ghost Hats, Submerge Kit |
+| Experimental / FX | Event Horizon, Time Shear |
+| Default/None | Revert to default |
 
 ---
 
@@ -125,4 +126,4 @@ Figma: [Design file](https://www.figma.com/design/Em3jdV60MSLZxlxcE9jMQJ/TFG--Dy
 
 ---
 
-Academic project — UCM TFG 2025-2026.
+Released under the MIT License. Developed as a TFG at Universidad Complutense de Madrid, 2025-2026.
